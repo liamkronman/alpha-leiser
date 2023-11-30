@@ -21,7 +21,7 @@ module AlphaZero
   # When running on a CPU, having multiple threads does not play
   # well with BLAS multithreading
   import LinearAlgebra
-  LinearAlgebra.BLAS.set_num_threads(1)
+  LinearAlgebra.BLAS.set_num_threads(2)
 
   # Internal helper functions
   include("util.jl")
