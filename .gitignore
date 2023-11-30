@@ -4,7 +4,6 @@ Manifest.toml
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
-*.data
 *~
 
 /docs/build/
