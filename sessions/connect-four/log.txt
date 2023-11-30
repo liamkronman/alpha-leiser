@@ -69,3 +69,148 @@ Starting iteration 2
   Running benchmark: Network Only against MCTS (1000 rollouts)
   
     Average reward: -0.91 (4% won, 1% draw, 95% lost), redundancy: 17.4%
+
+Starting iteration 3
+
+  Starting self-play
+  
+    Generating 24 samples per second on average
+    Average exploration depth: 5.8
+    MCTS memory footprint per worker: 10.86MB
+    Experience buffer size: 382,879 (272,794 distinct boards)
+  
+  Starting learning
+  
+    Optimizing the loss
+    
+         Loss       Lv       Lp     Lreg     Linv       Hp    Hpnet
+       1.0183   0.6270   0.3265   0.0629   0.0018   1.1345   1.4920
+       0.8150   0.5262   0.2080   0.0803   0.0003   1.1345   1.3327
+    
+    Launching a checkpoint evaluation
+    
+      Average reward: +0.86 (89% won, 8% draw, 3% lost, network replaced), redundancy: 36.4%
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+    Average reward: +0.92 (95% won, 2% draw, 3% lost), redundancy: 29.1%
+  
+  Running benchmark: Network Only against MCTS (1000 rollouts)
+  
+    Average reward: -0.57 (20% won, 2% draw, 77% lost), redundancy: 14.1%
+
+Starting iteration 4
+
+  Starting self-play
+  
+    Generating 24 samples per second on average
+    Average exploration depth: 7.0
+    MCTS memory footprint per worker: 11.06MB
+    Experience buffer size: 520,000 (367,678 distinct boards)
+  
+  Starting learning
+  
+    Optimizing the loss
+    
+         Loss       Lv       Lp     Lreg     Linv       Hp    Hpnet
+       0.8460   0.5035   0.2613   0.0803   0.0008   1.0261   1.2968
+       0.7471   0.4399   0.2125   0.0944   0.0002   1.0261   1.2462
+    
+    Launching a checkpoint evaluation
+    
+      Average reward: +0.52 (62% won, 28% draw, 10% lost, network replaced), redundancy: 52.0%
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+    Average reward: +0.95 (97% won, 0% draw, 2% lost), redundancy: 31.4%
+  
+  Running benchmark: Network Only against MCTS (1000 rollouts)
+  
+    Average reward: -0.31 (33% won, 3% draw, 64% lost), redundancy: 13.3%
+
+Starting iteration 5
+
+  Starting self-play
+  
+    Generating 24 samples per second on average
+    Average exploration depth: 7.9
+    MCTS memory footprint per worker: 10.80MB
+    Experience buffer size: 560,000 (384,597 distinct boards)
+  
+  Starting learning
+  
+    Optimizing the loss
+    
+         Loss       Lv       Lp     Lreg     Linv       Hp    Hpnet
+       0.7399   0.3955   0.2495   0.0944   0.0005   0.9042   1.1920
+       0.6409   0.3251   0.2122   0.1033   0.0002   0.9042   1.1031
+    
+    Launching a checkpoint evaluation
+    
+      Average reward: +0.58 (63% won, 31% draw, 5% lost, network replaced), redundancy: 48.3%
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+    Average reward: +1.00 (100% won, 0% draw, 0% lost), redundancy: 30.4%
+  
+  Running benchmark: Network Only against MCTS (1000 rollouts)
+  
+    Average reward: +0.30 (63% won, 4% draw, 33% lost), redundancy: 20.4%
+
+Starting iteration 6
+
+  Starting self-play
+  
+    Generating 24 samples per second on average
+    Average exploration depth: 8.9
+    MCTS memory footprint per worker: 10.73MB
+    Experience buffer size: 600,000 (387,712 distinct boards)
+  
+  Starting learning
+  
+    Optimizing the loss
+    
+         Loss       Lv       Lp     Lreg     Linv       Hp    Hpnet
+       0.6174   0.2781   0.2354   0.1033   0.0004   0.8019   1.0559
+       0.5351   0.2269   0.2007   0.1071   0.0002   0.8019   1.0052
+    
+    Launching a checkpoint evaluation
+    
+      Average reward: +0.24 (38% won, 49% draw, 13% lost, network replaced), redundancy: 60.2%
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+    Average reward: +0.98 (99% won, 0% draw, 1% lost), redundancy: 31.0%
+  
+  Running benchmark: Network Only against MCTS (1000 rollouts)
+  
+    Average reward: +0.64 (81% won, 2% draw, 17% lost), redundancy: 21.8%
+
+Starting iteration 7
+
+  Starting self-play
+  
+    Generating 23 samples per second on average
+    Average exploration depth: 9.0
+    MCTS memory footprint per worker: 10.80MB
+    Experience buffer size: 640,000 (384,900 distinct boards)
+  
+  Starting learning
+  
+    Optimizing the loss
+    
+         Loss       Lv       Lp     Lreg     Linv       Hp    Hpnet
+       0.5116   0.2016   0.2025   0.1071   0.0003   0.7591   0.9761
+       0.4786   0.1779   0.1916   0.1086   0.0002   0.7591   0.9490
+    
+    Launching a checkpoint evaluation
+    
+      Average reward: +0.77 (83% won, 12% draw, 5% lost, network replaced), redundancy: 55.5%
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+    Average reward: +1.00 (100% won, 0% draw, 0% lost), redundancy: 29.1%
+  
+  Running benchmark: Network Only against MCTS (1000 rollouts)
+  
+    Average reward: +0.62 (80% won, 3% draw, 18% lost), redundancy: 24.1%
