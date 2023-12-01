@@ -37,10 +37,10 @@ const BM = Piece(MONARCH, BLACK, N)
 const BPL = Piece(PAWN, BLACK, SE)
 const BPR = Piece(PAWN, BLACK, SW)
 
-const NA = Nothing
+const NA = nothing
 
 const Square = Union{Nothing, Piece}
-const Board = SVector{NUM_SQUARES, Square}
+const Board = MVector{NUM_SQUARES, Square}
 
 struct NullMove end
 struct TranslateMove
@@ -128,7 +128,7 @@ function generate_action_mask(board::Board, current_player::Color)
     is_our_piece = board[from] != NA && board[from].color == current_player
     for to in new_moves
       # qi is higher and theres not a king there
-      has_more_chi = qi_at(from) > qi_at(to) && (to == NA || to.type == PAWN)
+      has_more_chi = qi_at(Int8(from)) > qi_at(Int8(to)) && (board[to] == NA || board[to].type == PAWN)
       if is_our_piece && (board[to] == NA || has_more_chi)
         push!(actions, true)
       else
@@ -147,12 +147,12 @@ function generate_action_mask(board::Board, current_player::Color)
       push!(actions, false)
     end
   end
-  actions
+  MVector(actions...)
 end
 
 function GI.init(::GameSpec)
   # reverse so top left is 63 and bot right is 0
-  board = reverse(@SVector [
+  board = reverse(MVector{64,Square}(
     BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
     BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
     NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
@@ -161,7 +161,7 @@ function GI.init(::GameSpec)
     NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
     WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
     WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
-  ])
+  ))
   return GameEnv(board, WHITE, false, WHITE, 0, generate_action_mask(board, WHITE))
 end
 
@@ -271,6 +271,7 @@ function GI.play!(g::GameEnv, action)
     x, y = get_push_square(action.from, action.to)
     next = idx_of_xy((x, y))
     if valid_xy((x, y)) && g.board[next] == NA
+       @assert 1 <= next <= 64
       g.board[next] = g.board[to]
     end
     g.board[action.to] = g.board[action.from]
@@ -343,10 +344,11 @@ function flip_piece(p::Piece)
 end
 
 function flip_colors(board::Board)
-  return @SVector [
+  list = [
     piece == NA ? NA : flip_piece(piece)
     for piece in board
   ]
+  return MVector([list...])
 end
 
 function generate_piece_types()
@@ -366,13 +368,10 @@ end
 
 const piece_types = generate_piece_types()
 
-function GI.vectorize_state(::GameSpec, state)
-#   print the state
-  @show state
-  flush(STDOUT)
+function GI.vectorize_state(::GameSpec, state::GameEnv)
   board = state.current_player == WHITE ? state.board : flip_colors(state.board)
   return Float32[
-    board[col, row] == c
+    board[idx_of_xy((col,row))] == c
     for col in 1:8,
         row in 1:8,
         c in piece_types]
