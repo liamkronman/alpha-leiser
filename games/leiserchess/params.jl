@@ -79,4 +79,4 @@ benchmark = [
   ]
 
 experiment = Experiment(
-  "leiserchess_experiment", GameSpec(), params, Network, netparams, benchmark)
+  "leiserchess", GameSpec(), params, Network, netparams, benchmark)

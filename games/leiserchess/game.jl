@@ -19,9 +19,9 @@ const Direction = Union{MonarchDirection, PawnDirection}
 @enum(Rotation, RIGHT, UTURN, LEFT)
 const SquareIdx = Int8
 
-idx_of_xy((x, y)) = (y - 1) * 8 + (x - 1) + 1
+idx_of_xy((x, y)) = (y - 1) * 8 + ((9 - x) - 1) + 1
 valid_xy((x, y)) = x >= 1 && x <= 8 && y >= 1 && y <= 8
-xy_of_idx(idx::SquareIdx) = ((idx - 1) % 8 + 1, (idx - 1) ÷ 8 + 1)
+xy_of_idx(idx::SquareIdx) = (9 - ((idx - 1) % 8 + 1), (idx - 1) ÷ 8 + 1)
 
 mutable struct Piece
   type::PieceType
@@ -29,13 +29,13 @@ mutable struct Piece
   dir::Direction
 end
 
-const WM = Piece(MONARCH, WHITE, MonarchDirection.S)
-const WPL = Piece(PAWN, WHITE, PawnDirection.NE)
-const WPR = Piece(PAWN, WHITE, PawnDirection.NW)
+const WM = Piece(MONARCH, WHITE, S)
+const WPL = Piece(PAWN, WHITE, NE)
+const WPR = Piece(PAWN, WHITE, NW)
 
-const BM = Piece(MONARCH, BLACK, MonarchDirection.N)
-const BPL = Piece(PAWN, BLACK, PawnDirection.SE)
-const BPR = Piece(PAWN, BLACK, PawnDirection.SW)
+const BM = Piece(MONARCH, BLACK, N)
+const BPL = Piece(PAWN, BLACK, SE)
+const BPR = Piece(PAWN, BLACK, SW)
 
 const NA = Nothing
 
@@ -98,9 +98,9 @@ function create_all_actions()
     end
   end
   for sq in 1:64
-    push!(actions, RotateMove(sq, Rotation.RIGHT))
-    push!(actions, RotateMove(sq, Rotation.UTURN))
-    push!(actions, RotateMove(sq, Rotation.LEFT))
+    push!(actions, RotateMove(sq, RIGHT))
+    push!(actions, RotateMove(sq, UTURN))
+    push!(actions, RotateMove(sq, LEFT))
   end
   actions
 end
@@ -208,8 +208,60 @@ function get_monarchs(board::Board, color::Color)
   monarchs
 end
 
-function fire_laser(board::Board, monarch::SquareIdx)
-  return 0
+function get_laser_target(board::Board, dir::MonarchDirection, sq::SquareIdx)
+
+end
+
+function move_xy_in_dir(x, y, dir::MonarchDirection)
+  if dir == N
+    return (x, y - 1)
+  else if dir == E
+    return (x + 1, y)
+  else if dir == S
+    return (x, y - 1)
+  else
+    return (x - 1, y)
+end
+
+function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
+  if pawn_dir == NE
+    (dir == S && (return E))
+    (dir == W && (return N))
+  else if pawn_dir == NW
+    (dir == S && (return W))
+    (dir == E && (return N))
+  else if pawn_dir == SE
+    (dir == N && (return E))
+    (dir == W && (return S))
+  else if pawn_dir == SW
+    (dir == N && (return W))
+    (dir == E && (return S))
+  else
+    return nothing
+  end
+end
+
+function fire_laser(board::Board, monarch_sq::SquareIdx)
+  x, y = xy_of_idx(monarch_sq)
+  dir::MonarchDirection = board[monarch_sq].dir
+  x, y = move_xy_in_dir(x, y, dir)
+  while valid_xy((x, y))
+    piece::Piece = board[idx_of_xy((x, y))]
+    if piece != NA
+      if piece.type == MONARCH
+        return idx_of_xy((x, y))
+      else if piece.type == PAWN
+        next_bounce = pawn_bounce(piece.dir, dir)
+        if next_bounce === nothing
+          return idx_of_xy((x, y))
+        else
+          dir = next_bounce
+        end
+      end
+    end
+    x, y = move_xy_in_dir(x, y, dir)
+  end
+  return nothing
 end
 
 function GI.play!(g::GameEnv, action)
@@ -236,8 +288,10 @@ function GI.play!(g::GameEnv, action)
   monarchs = get_monarchs(g.board, g.current_player)
   for monarch in monarchs
     square::SquareIdx = fire_laser(g.board, monarch)
-    g.board[square] = NA
-    zapped += 1
+    if square !== nothing
+      g.board[square] = NA
+      zapped += 1
+    end
   end
 
   curr_monarchs = get_monarchs(g.board, g.current_player)
@@ -319,3 +373,5 @@ function GI.vectorize_state(::GameSpec, state)
         row in 1:8,
         c in piece_types]
 end
+
+
