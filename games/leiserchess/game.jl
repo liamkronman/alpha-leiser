@@ -357,9 +357,13 @@ function generate_piece_types()
   for color in [WHITE, BLACK]
       for dir in [N, W, S, E]
         push!(pieces, Piece(MONARCH, color, dir))
+      end
+  end
   for color in [WHITE, BLACK]
     for dir in [NE, NW, SW, SE]
       push!(pieces, Piece(PAWN, color, dir))
+    end
+  end
   pieces
 end
 
