@@ -41,11 +41,7 @@ const BPR = Piece(PAWN, BLACK, SW)
 const NA = nothing
 
 const Square = Union{Nothing, Piece}
-<<<<<<< HEAD
 const Board = Array{Square, 1}
-=======
-const Board = Vector{Square}
->>>>>>> 2176d45dd7e0bfd9185ee6592b610d4c92b8359e
 
 struct NullMove end
 struct TranslateMove
@@ -140,11 +136,7 @@ function create_all_actions()
     push!(actions, RotateMove(sq, UTURN))
     push!(actions, RotateMove(sq, LEFT))
   end
-<<<<<<< HEAD
   actions
-=======
-  Vector(actions...)
->>>>>>> 2176d45dd7e0bfd9185ee6592b610d4c92b8359e
 end
 
 const ACTIONS = create_all_actions()
@@ -189,20 +181,12 @@ function generate_action_mask(board::Board, current_player::Color)
       push!(actions, false)
     end
   end
-<<<<<<< HEAD
   actions
-=======
-  Vector(actions...)
->>>>>>> 2176d45dd7e0bfd9185ee6592b610d4c92b8359e
 end
 
 function GI.init(::GameSpec)
   # reverse so top left is 63 and bot right is 0
-<<<<<<< HEAD
   board = reverse([
-=======
-  board = reverse(Vector{64,Square}(
->>>>>>> 2176d45dd7e0bfd9185ee6592b610d4c92b8359e
     BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
     BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
     NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
@@ -229,12 +213,12 @@ GI.actions_mask(g::GameEnv) = g.action_mask
 GI.current_state(g::GameEnv) = deepcopy(g)
 
 function GI.set_state!(g::GameEnv, state)
-  g.action_mask = deepcopy(state.action_mask)
-  g.board = deepcopy(state.board)
-  g.current_player = deepcopy(state.current_player)
-  g.is_finished = deepcopy(state.is_finished)
-  g.moves_since_capture = deepcopy(state.moves_since_capture)
-  g.winner = deepcopy(state.winner)
+  g.action_mask = state.action_mask
+  g.board = state.board
+  g.current_player = state.current_player
+  g.is_finished = state.is_finished
+  g.moves_since_capture = state.moves_since_capture
+  g.winner = state.winner
 end
 
 function get_push_square(from::SquareIdx, to::SquareIdx)
@@ -255,11 +239,7 @@ function get_monarchs(board::Board, color::Color)
       push!(monarchs, SquareIdx(i))
     end
   end
-<<<<<<< HEAD
   monarchs
-=======
-  Vector(monarchs...)
->>>>>>> 2176d45dd7e0bfd9185ee6592b610d4c92b8359e
 end
 
 function move_xy_in_dir(x, y, dir::MonarchDirection)
@@ -416,11 +396,7 @@ function flip_colors(board::Board)
     piece == NA ? NA : flip_piece(piece)
     for piece in board
   ]
-<<<<<<< HEAD
   return Board(list...)
-=======
-  return Vector(list...)
->>>>>>> 2176d45dd7e0bfd9185ee6592b610d4c92b8359e
 end
 
 function generate_piece_types()
@@ -453,165 +429,165 @@ end
 ##### Symmetries
 #####
 
-function flipped_board(board::Board)
-    # Create a flipped version of the board
-    flipped_board = copy(board)
-    for row in 1:NUM_ROWS
-        for col in 1:NUM_COLS ÷ 2
-            # Swap elements symmetrically across the middle column
-            opposite_col = NUM_COLS - col + 1
-            flipped_board[idx_of_xy((col, row))], flipped_board[idx_of_xy((opposite_col, row))] = flipped_board[idx_of_xy((opposite_col, row))], flipped_board[idx_of_xy((col, row))]
-        end
-    end
-    return flipped_board
-end
+# function flipped_board(board::Board)
+#     # Create a flipped version of the board
+#     flipped_board = copy(board)
+#     for row in 1:NUM_ROWS
+#         for col in 1:NUM_COLS ÷ 2
+#             # Swap elements symmetrically across the middle column
+#             opposite_col = NUM_COLS - col + 1
+#             flipped_board[idx_of_xy((col, row))], flipped_board[idx_of_xy((opposite_col, row))] = flipped_board[idx_of_xy((opposite_col, row))], flipped_board[idx_of_xy((col, row))]
+#         end
+#     end
+#     return flipped_board
+# end
 
-function GI.symmetries(::GameSpec, state::GameEnv)
-    flipped = flipped_board(state.board)
-    # Create a symmetrical game state
-    sym_state = GameEnv(flipped, state.current_player, state.is_finished, state.winner, state.moves_since_capture, generate_action_mask(flipped, state.current_player))
-    # Return the symmetrical state with the corresponding column transformation
-    return [(sym_state, reverse(1:NUM_COLS))]
-end
+# function GI.symmetries(::GameSpec, state::GameEnv)
+#     flipped = flipped_board(state.board)
+#     # Create a symmetrical game state
+#     sym_state = GameEnv(flipped, state.current_player, state.is_finished, state.winner, state.moves_since_capture, generate_action_mask(flipped, state.current_player))
+#     # Return the symmetrical state with the corresponding column transformation
+#     return [(sym_state, reverse(1:NUM_COLS))]
+# end
 
-#####
-##### User interface
-#####
+# #####
+# ##### User interface
+# #####
 
-GI.action_string(::GameSpec, a) = string(a)
+# GI.action_string(::GameSpec, a) = string(a)
 
-# format: "(x,y) -> (x+1,y)" or "(x,y) rot R" or "(x,y) rot U"
-function GI.parse_action(::GameSpec, str::String)
-    # Regex patterns to match different action types
-    move_pattern = r"\((\d+),(\d+)\) -> \((\d+),(\d+)\)"
-    rotate_pattern = r"\((\d+),(\d+)\) rot (R|U|L)"
+# # format: "(x,y) -> (x+1,y)" or "(x,y) rot R" or "(x,y) rot U"
+# function GI.parse_action(::GameSpec, str::String)
+#     # Regex patterns to match different action types
+#     move_pattern = r"\((\d+),(\d+)\) -> \((\d+),(\d+)\)"
+#     rotate_pattern = r"\((\d+),(\d+)\) rot (R|U|L)"
 
-    # Match for move action
-    move_match = match(move_pattern, str)
-    if move_match !== nothing
-        from_x, from_y = parse(Int, move_match.captures[1]), parse(Int, move_match.captures[2])
-        to_x, to_y = parse(Int, move_match.captures[3]), parse(Int, move_match.captures[4])
-        from_idx = idx_of_xy((from_x, from_y))
-        to_idx = idx_of_xy((to_x, to_y))
-        return TranslateMove(from_idx, to_idx)
-    end
+#     # Match for move action
+#     move_match = match(move_pattern, str)
+#     if move_match !== nothing
+#         from_x, from_y = parse(Int, move_match.captures[1]), parse(Int, move_match.captures[2])
+#         to_x, to_y = parse(Int, move_match.captures[3]), parse(Int, move_match.captures[4])
+#         from_idx = idx_of_xy((from_x, from_y))
+#         to_idx = idx_of_xy((to_x, to_y))
+#         return TranslateMove(from_idx, to_idx)
+#     end
 
-    # Match for rotate action
-    rotate_match = match(rotate_pattern, str)
-    if rotate_match !== nothing
-        x, y = parse(Int, rotate_match.captures[1]), parse(Int, rotate_match.captures[2])
-        rot_dir = rotate_match.captures[3]
-        square_idx = idx_of_xy((x, y))
-        rot = (rot_dir == "R" ? RIGHT : rot_dir == "U" ? UTURN : LEFT)
-        return RotateMove(square_idx, rot)
-    end
+#     # Match for rotate action
+#     rotate_match = match(rotate_pattern, str)
+#     if rotate_match !== nothing
+#         x, y = parse(Int, rotate_match.captures[1]), parse(Int, rotate_match.captures[2])
+#         rot_dir = rotate_match.captures[3]
+#         square_idx = idx_of_xy((x, y))
+#         rot = (rot_dir == "R" ? RIGHT : rot_dir == "U" ? UTURN : LEFT)
+#         return RotateMove(square_idx, rot)
+#     end
 
-    # If no matches, return nothing
-    return nothing
-end
+#     # If no matches, return nothing
+#     return nothing
+# end
 
-player_color(p) = p == WHITE ? crayon"light_red" : crayon"light_blue"
-player_name(p)  = p == WHITE ? "Red" : "Blue"
+# player_color(p) = p == WHITE ? crayon"light_red" : crayon"light_blue"
+# player_name(p)  = p == WHITE ? "Red" : "Blue"
 
-function GI.render(g::GameEnv; with_position_names=true, botmargin=true)
-    pname = player_name(g.current_player)
-    pcol = player_color(g.current_player)
-    print(pcol, pname, " plays:", crayon"reset", "\n\n")
-    # Print legend
-    for col in 1:NUM_COLS
-        print(GI.action_string(GI.spec(g), col), " ")
-    end
-    print("\n")
-    # Print board
-    for row in NUM_ROWS:-1:1
-        for col in 1:NUM_COLS
-            c = g.board[idx_of_xy((col, row))]
-            print(cell_color(c), cell_mark(c), crayon"reset", " ")
-        end
-        print("\n")
-    end
-    botmargin && print("\n")
-end
+# function GI.render(g::GameEnv; with_position_names=true, botmargin=true)
+#     pname = player_name(g.current_player)
+#     pcol = player_color(g.current_player)
+#     print(pcol, pname, " plays:", crayon"reset", "\n\n")
+#     # Print legend
+#     for col in 1:NUM_COLS
+#         print(GI.action_string(GI.spec(g), col), " ")
+#     end
+#     print("\n")
+#     # Print board
+#     for row in NUM_ROWS:-1:1
+#         for col in 1:NUM_COLS
+#             c = g.board[idx_of_xy((col, row))]
+#             print(cell_color(c), cell_mark(c), crayon"reset", " ")
+#         end
+#         print("\n")
+#     end
+#     botmargin && print("\n")
+# end
 
-function cell_mark(square)
-    if square === NA
-        return "."
-    else
-        if square.type == MONARCH
-            return monarch_mark(square.dir)
-        elseif square.type == PAWN
-            return pawn_mark(square.dir)
-        end
-    end
-end
+# function cell_mark(square)
+#     if square === NA
+#         return "."
+#     else
+#         if square.type == MONARCH
+#             return monarch_mark(square.dir)
+#         elseif square.type == PAWN
+#             return pawn_mark(square.dir)
+#         end
+#     end
+# end
 
-function monarch_mark(dir)
-    # Unicode arrows for different directions
-    return dir == N ? "↑" : dir == E ? "→" : dir == S ? "↓" : "←"
-end
+# function monarch_mark(dir)
+#     # Unicode arrows for different directions
+#     return dir == N ? "↑" : dir == E ? "→" : dir == S ? "↓" : "←"
+# end
 
-function pawn_mark(dir)
-    # Unicode/ASCII triangles for different directions
-    return dir == NE ? "◣" : dir == NW ? "◢" : dir == SW ? "◥" : "◤"
-end
+# function pawn_mark(dir)
+#     # Unicode/ASCII triangles for different directions
+#     return dir == NE ? "◣" : dir == NW ? "◢" : dir == SW ? "◥" : "◤"
+# end
 
-function GI.read_state(::GameSpec)
-    # Initialize an empty board
-    board = Vector{Square}(undef, NUM_SQUARES)
+# function GI.read_state(::GameSpec)
+#     # Initialize an empty board
+#     board = Vector{Square}(undef, NUM_SQUARES)
 
-    try
-        # Read each row of the board
-        for row in 1:NUM_ROWS
-            input = readline()
-            # Process each character in the row
-            for (col, c) in enumerate(input)
-                idx = idx_of_xy((col, row))
-                board[idx] = char_to_piece(c)
-            end
-        end
+#     try
+#         # Read each row of the board
+#         for row in 1:NUM_ROWS
+#             input = readline()
+#             # Process each character in the row
+#             for (col, c) in enumerate(input)
+#                 idx = idx_of_xy((col, row))
+#                 board[idx] = char_to_piece(c)
+#             end
+#         end
 
-        # Determine the current player based on the count of pieces
-        nw, nb = count_pieces(board)
-        curplayer = determine_current_player(nw, nb)
+#         # Determine the current player based on the count of pieces
+#         nw, nb = count_pieces(board)
+#         curplayer = determine_current_player(nw, nb)
 
-        if curplayer === nothing
-            return nothing
-        end
+#         if curplayer === nothing
+#             return nothing
+#         end
 
-        return GameEnv(board, curplayer, false, WHITE, 0, generate_action_mask(board, curplayer))
-    catch e
-        return nothing
-    end
-end
+#         return GameEnv(board, curplayer, false, WHITE, 0, generate_action_mask(board, curplayer))
+#     catch e
+#         return nothing
+#     end
+# end
 
-function char_to_piece(c::Char)
-    c = lowercase(c)
-    piece_map = Dict(
-        '↑' => Piece(MONARCH, N), '→' => Piece(MONARCH, E),
-        '↓' => Piece(MONARCH, S), '←' => Piece(MONARCH, W),
-        '◣' => Piece(PAWN, NE), '◢' => Piece(PAWN, NW),
-        '◥' => Piece(PAWN, SW), '◤' => Piece(PAWN, SE),
-        '.' => NA
-    )
-    return get(piece_map, c, NA)
-end
+# function char_to_piece(c::Char)
+#     c = lowercase(c)
+#     piece_map = Dict(
+#         '↑' => Piece(MONARCH, N), '→' => Piece(MONARCH, E),
+#         '↓' => Piece(MONARCH, S), '←' => Piece(MONARCH, W),
+#         '◣' => Piece(PAWN, NE), '◢' => Piece(PAWN, NW),
+#         '◥' => Piece(PAWN, SW), '◤' => Piece(PAWN, SE),
+#         '.' => NA
+#     )
+#     return get(piece_map, c, NA)
+# end
 
-function count_pieces(board::Vector{Square})
-    nw, nb = 0, 0
-    for piece in board
-        if piece !== NA
-            piece.color == WHITE ? nw += 1 : nb += 1
-        end
-    end
-    return nw, nb
-end
+# function count_pieces(board::Vector{Square})
+#     nw, nb = 0, 0
+#     for piece in board
+#         if piece !== NA
+#             piece.color == WHITE ? nw += 1 : nb += 1
+#         end
+#     end
+#     return nw, nb
+# end
 
-function determine_current_player(nw::Int, nb::Int)
-    if nw == nb
-        return WHITE
-    elseif nw == nb + 1
-        return BLACK
-    else
-        return nothing
-    end
-end
+# function determine_current_player(nw::Int, nb::Int)
+#     if nw == nb
+#         return WHITE
+#     elseif nw == nb + 1
+#         return BLACK
+#     else
+#         return nothing
+#     end
+# end

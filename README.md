@@ -57,9 +57,9 @@ We found the [Julia language](https://julialang.org/) to be instrumental in achi
 To download AlphaZero.jl and start training a Connect Four agent, just run:
 
 ```sh
-export GKSwstype=100  # To avoid an occasional GR bug
 git clone https://github.com/jonathan-laurent/AlphaZero.jl.git
 cd AlphaZero.jl
+export GKSwstype=100  # To avoid an occasional GR bug
 julia --project -e 'import Pkg; Pkg.instantiate()'
 julia --project -e 'using AlphaZero; Scripts.train("leiserchess")'
 ```
