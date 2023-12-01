@@ -250,7 +250,7 @@ function fire_laser(board::Board, monarch_sq::SquareIdx)
     if piece != NA
       if piece.type == MONARCH
         return idx_of_xy((x, y))
-      else if piece.type == PAWN
+      elseif piece.type == PAWN
         next_bounce = pawn_bounce(piece.dir, dir)
         if next_bounce === nothing
           return idx_of_xy((x, y))
