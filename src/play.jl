@@ -305,10 +305,16 @@ function play_game(gspec, player; flip_probability=0.)
     if !iszero(flip_probability) && rand() < flip_probability
       GI.apply_random_symmetry!(game)
     end
+    #println(typeof(player))
     actions, π_target = think(player, game)
     τ = player_temperature(player, game, length(trace))
+    #println("pi target:")
+    #println(π_target)
     π_sample = apply_temperature(π_target, τ)
+    #println("pi sample:")
+    #println(π_sample)
     a = actions[Util.rand_categorical(π_sample)]
+    #@assert false
     GI.play!(game, a)
     push!(trace, π_target, GI.white_reward(game), GI.current_state(game))
   end

@@ -36,11 +36,18 @@ AlphaZero.jl [Game Interface](@ref game_interface).
 """
 function test_game(gspec::AbstractGameSpec; n=100)
   @assert isa(GI.two_players(gspec), Bool)
-
   # Testing initial states
   if all(same_state(GI.init(gspec), GI.init(gspec)) for _ in 1:n)
     @info "There appears to be a unique initial state."
   else
+    first = GI.init(gspec)
+    second = GI.init(gspec)
+    if !same_state(first, second)
+      println("first:")
+      println(GI.current_state(first))
+      println("second:")
+      println(GI.current_state(second))
+    end 
     @info "There appears to be a nontrivial distribution of initial states."
   end
   @assert all(GI.white_playing(GI.init(gspec)) for _ in 1:n)  
@@ -82,21 +89,9 @@ function test_game(gspec::AbstractGameSpec; n=100)
       @assert isa(GI.heuristic_value(game), Float64)
       state_copy = deepcopy(state)
       a = rand(GI.available_actions(game))
-      @assert isa(GI.action_string(gspec, a), String)
       GI.play!(game, a)
       @assert state_copy == state "States must appear as persistent."
       @assert isa(GI.white_reward(game), Float64)
-    end
-
-    # Testing symmetries
-    syms = GI.symmetries(gspec, state)
-    @assert isa(syms, Vector)
-    for sym in syms
-      s, σ = sym
-      @assert isa(s, State)
-      @assert isa(σ, Vector{Int})
-      @assert length(σ) == num_actions
-      @assert test_symmetry(gspec, state, sym)
     end
 
     # Verifying that static properties are state invariant

@@ -218,6 +218,7 @@ function run_simulation!(env::Env, game; η, root=true)
       qnext = run_simulation!(env, game, η=η, root=false)
       qnext = pswitch ? -qnext : qnext
       q = r + env.gamma * qnext
+      @assert false
       update_state_info!(env, state, action_id, q)
       env.total_nodes_traversed += 1
       return q
@@ -264,9 +265,15 @@ function policy(env::Env, game)
         rethrow(e)
       end
     end
+  #println("info:\n$info")
   Ntot = sum(a.N for a in info.stats)
+  #println("Ntot:\n$Ntot")
   π = [a.N / Ntot for a in info.stats]
+  #println("π:\n$π")
   π ./= sum(π)
+  #println("π again:\n$π")
+
+  #@assert false
   return actions, π
 end
 

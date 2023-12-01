@@ -30,6 +30,8 @@ mutable struct Piece
   dir::Direction
 end
 
+Base.:(==)(a::Piece, b::Piece) = a.type == b.type && a.color == b.color && a.dir == b.dir
+
 const WM = Piece(MONARCH, WHITE, S)
 const WPL = Piece(PAWN, WHITE, NE)
 const WPR = Piece(PAWN, WHITE, NW)
@@ -136,6 +138,11 @@ function create_all_actions()
     push!(actions, RotateMove(sq, UTURN))
     push!(actions, RotateMove(sq, LEFT))
   end
+  if size(actions)[1] != TOTAL_MOVES
+    len = size(actions)[1]
+    println("total actions: $len")
+  end
+  @assert size(actions)[1] == TOTAL_MOVES
   actions
 end
 
@@ -181,22 +188,28 @@ function generate_action_mask(board::Board, current_player::Color)
       push!(actions, false)
     end
   end
+  @assert size(actions)[1] == TOTAL_MOVES
   actions
 end
 
+# reverse so top left is 63 and bot right is 0
+const INITIAL_BOARD = reverse([
+  BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
+  BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
+  WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
+])
+
+const INITIAL_MOVES = generate_action_mask(INITIAL_BOARD, WHITE)
+
+const INITIAL_STATE = GameEnv(INITIAL_BOARD, WHITE, false, WHITE, 0, INITIAL_MOVES)
+
 function GI.init(::GameSpec)
-  # reverse so top left is 63 and bot right is 0
-  board = reverse([
-    BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
-    BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
-    NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-    NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-    NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-    NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-    WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
-    WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
-  ])
-  return GameEnv(board, WHITE, false, WHITE, 0, generate_action_mask(board, WHITE))
+  return INITIAL_STATE
 end
 
 GI.two_players(::GameSpec) = true
@@ -210,15 +223,15 @@ GI.spec(::GameEnv) = GameSpec()
 
 GI.actions(::GameSpec) = ACTIONS
 GI.actions_mask(g::GameEnv) = g.action_mask
-GI.current_state(g::GameEnv) = deepcopy(g)
+GI.current_state(g::GameEnv) = (g.action_mask, g.board, g.current_player, g.is_finished, g.moves_since_capture, g.winner)
 
 function GI.set_state!(g::GameEnv, state)
-  g.action_mask = state.action_mask
-  g.board = state.board
-  g.current_player = state.current_player
-  g.is_finished = state.is_finished
-  g.moves_since_capture = state.moves_since_capture
-  g.winner = state.winner
+  g.action_mask = deepcopy(state[1])
+  g.board = deepcopy(state[2])
+  g.current_player = deepcopy(state[3])
+  g.is_finished = deepcopy(state[4])
+  g.moves_since_capture = deepcopy(state[5])
+  g.winner = deepcopy(state[6])
 end
 
 function get_push_square(from::SquareIdx, to::SquareIdx)
@@ -396,7 +409,7 @@ function flip_colors(board::Board)
     piece == NA ? NA : flip_piece(piece)
     for piece in board
   ]
-  return Board(list...)
+  return list
 end
 
 function generate_piece_types()
@@ -416,13 +429,23 @@ end
 
 const piece_types = generate_piece_types()
 
-function GI.vectorize_state(::GameSpec, state::GameEnv)
-  board = state.current_player == WHITE ? state.board : flip_colors(state.board)
+function GI.vectorize_state(::GameSpec, state)
+  board = state[3] == WHITE ? state[2] : flip_colors(state[2])
   return Float32[
     board[idx_of_xy((col,row))] == c
     for col in 1:8,
         row in 1:8,
         c in piece_types]
+end
+
+function GI.heuristic_value(g::GameEnv)
+  total = 0
+  for square in g.board
+    if square != NA && square.color == g.current_player
+      total += 1
+    end
+  end
+  return Float64(total)
 end
 
 #####

@@ -214,3 +214,36 @@ Starting iteration 7
   Running benchmark: Network Only against MCTS (1000 rollouts)
   
     Average reward: +0.62 (80% won, 3% draw, 18% lost), redundancy: 24.1%
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 1,672,328
+    Number of regularized network parameters: 1,667,776
+    Memory footprint per MCTS node: 326 bytes
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 1,672,328
+    Number of regularized network parameters: 1,667,776
+    Memory footprint per MCTS node: 326 bytes
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 1,672,328
+    Number of regularized network parameters: 1,667,776
+    Memory footprint per MCTS node: 326 bytes
+  
+  Running benchmark: AlphaZero against MCTS (1000 rollouts)
+  
