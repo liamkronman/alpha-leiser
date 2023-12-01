@@ -209,7 +209,7 @@ const INITIAL_MOVES = generate_action_mask(INITIAL_BOARD, WHITE)
 const INITIAL_STATE = GameEnv(INITIAL_BOARD, WHITE, false, WHITE, 0, INITIAL_MOVES)
 
 function GI.init(::GameSpec)
-  return INITIAL_STATE
+  return deepcopy(INITIAL_STATE)
 end
 
 GI.two_players(::GameSpec) = true
@@ -219,7 +219,6 @@ GI.spec(::GameEnv) = GameSpec()
 #####
 ##### Game API
 #####
-
 
 GI.actions(::GameSpec) = ACTIONS
 GI.actions_mask(g::GameEnv) = g.action_mask

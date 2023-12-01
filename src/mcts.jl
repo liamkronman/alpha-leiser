@@ -218,7 +218,6 @@ function run_simulation!(env::Env, game; η, root=true)
       qnext = run_simulation!(env, game, η=η, root=false)
       qnext = pswitch ? -qnext : qnext
       q = r + env.gamma * qnext
-      @assert false
       update_state_info!(env, state, action_id, q)
       env.total_nodes_traversed += 1
       return q
