@@ -215,9 +215,9 @@ end
 function move_xy_in_dir(x, y, dir::MonarchDirection)
   if dir == N
     return (x, y - 1)
-  else if dir == E
+  elseif dir == E
     return (x + 1, y)
-  else if dir == S
+  elseif dir == S
     return (x, y - 1)
   else
     return (x - 1, y)
@@ -227,13 +227,13 @@ function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
   if pawn_dir == NE
     (dir == S && (return E))
     (dir == W && (return N))
-  else if pawn_dir == NW
+  elseif pawn_dir == NW
     (dir == S && (return W))
     (dir == E && (return N))
-  else if pawn_dir == SE
+  elseif pawn_dir == SE
     (dir == N && (return E))
     (dir == W && (return S))
-  else if pawn_dir == SW
+  elseif pawn_dir == SW
     (dir == N && (return W))
     (dir == E && (return S))
   else
