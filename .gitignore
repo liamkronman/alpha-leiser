@@ -4,13 +4,12 @@ Manifest.toml
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
-*.data
 *~
 
 /docs/build/
 /docs/site/
 
-sessions
 archive
 
 TODO.md
+sessions/connect-four/mem.data

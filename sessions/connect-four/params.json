@@ -1,0 +1,88 @@
+{
+    "self_play": {
+        "mcts": {
+            "gamma": 1,
+            "cpuct": 2,
+            "num_iters_per_turn": 600,
+            "temperature": {
+                "xs": [
+                    0,
+                    20,
+                    30
+                ],
+                "ys": [
+                    1,
+                    1,
+                    0.3
+                ]
+            },
+            "dirichlet_noise_ϵ": 0.25,
+            "dirichlet_noise_α": 1,
+            "prior_temperature": 1
+        },
+        "sim": {
+            "num_games": 5000,
+            "num_workers": 128,
+            "batch_size": 64,
+            "use_gpu": true,
+            "fill_batches": true,
+            "reset_every": 2,
+            "flip_probability": 0,
+            "alternate_colors": false
+        }
+    },
+    "memory_analysis": null,
+    "learning": {
+        "use_gpu": true,
+        "use_position_averaging": true,
+        "samples_weighing_policy": "LOG_WEIGHT",
+        "optimiser": {
+            "lr": 0.002
+        },
+        "l2_regularization": 0.0001,
+        "rewards_renormalization": 1,
+        "nonvalidity_penalty": 1,
+        "batch_size": 1024,
+        "loss_computation_batch_size": 1024,
+        "min_checkpoints_per_epoch": 1,
+        "max_batches_per_checkpoint": 2000,
+        "num_checkpoints": 1
+    },
+    "arena": {
+        "mcts": {
+            "gamma": 1,
+            "cpuct": 2,
+            "num_iters_per_turn": 600,
+            "temperature": {
+                "value": 0.2
+            },
+            "dirichlet_noise_ϵ": 0.05,
+            "dirichlet_noise_α": 1,
+            "prior_temperature": 1
+        },
+        "sim": {
+            "num_games": 128,
+            "num_workers": 128,
+            "batch_size": 128,
+            "use_gpu": true,
+            "fill_batches": true,
+            "reset_every": 2,
+            "flip_probability": 0.5,
+            "alternate_colors": true
+        },
+        "update_threshold": 0.05
+    },
+    "num_iters": 15,
+    "use_symmetries": true,
+    "ternary_outcome": true,
+    "mem_buffer_size": {
+        "xs": [
+            0,
+            15
+        ],
+        "ys": [
+            400000,
+            1000000
+        ]
+    }
+}
