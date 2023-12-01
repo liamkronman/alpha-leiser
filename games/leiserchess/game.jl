@@ -102,7 +102,7 @@ function create_all_actions()
     push!(actions, RotateMove(sq, UTURN))
     push!(actions, RotateMove(sq, LEFT))
   end
-  actions
+  MVector(actions...)
 end
 
 const ACTIONS = create_all_actions()
@@ -205,7 +205,7 @@ function get_monarchs(board::Board, color::Color)
       push!(monarchs, i)
     end
   end
-  monarchs
+  MVector(monarchs...)
 end
 
 function move_xy_in_dir(x, y, dir::MonarchDirection)
@@ -271,7 +271,7 @@ function GI.play!(g::GameEnv, action)
     x, y = get_push_square(action.from, action.to)
     next = idx_of_xy((x, y))
     if valid_xy((x, y)) && g.board[next] == NA
-       @assert 1 <= next <= 64
+      @assert 1 <= next <= 64
       g.board[next] = g.board[to]
     end
     g.board[action.to] = g.board[action.from]
@@ -348,7 +348,7 @@ function flip_colors(board::Board)
     piece == NA ? NA : flip_piece(piece)
     for piece in board
   ]
-  return MVector([list...])
+  return MVector(list...)
 end
 
 function generate_piece_types()
