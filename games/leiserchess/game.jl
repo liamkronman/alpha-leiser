@@ -367,6 +367,8 @@ end
 const piece_types = generate_piece_types()
 
 function GI.vectorize_state(::GameSpec, state)
+#   print the state
+   println("board: ", state.board)
   board = state.current_player == WHITE ? state.board : flip_colors(state.board)
   return Float32[
     board[col, row] == c
