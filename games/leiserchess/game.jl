@@ -5,6 +5,7 @@ const NUM_COLS = 8
 const NUM_ROWS = 8
 const NUM_SQUARES = NUM_COLS * NUM_ROWS
 
+
 const Color = Bool
 const WHITE = true
 const BLACK = false
@@ -40,7 +41,7 @@ const BPR = Piece(PAWN, BLACK, SW)
 const NA = nothing
 
 const Square = Union{Nothing, Piece}
-const Board = MVector{NUM_SQUARES, Square}
+const Board = Array{Square, 1}
 
 struct NullMove end
 struct TranslateMove
@@ -52,13 +53,46 @@ struct RotateMove
   rot :: Rotation
 end
 
+const Move = Union{NullMove, TranslateMove, RotateMove}
+const TOTAL_MOVES = 1 + 420 + 3*64
+const ActionMask = Array{Move, 1}
+
 # helpers for our structures
 function rotate_direction(dir::Direction, rot::Rotation)
-  dir_order = [N, NE, E, SE, S, SW, W, NW]
-  dir_index = findfirst(==(dir), dir_order)
-  rotation_step = (rot == RIGHT) ? 2 : (rot == LEFT) ? -2 : 4  # UTURN is a 180-degree turn
-  new_dir_index = (dir_index + rotation_step - 1) % length(dir_order) + 1
-  return dir_order[new_dir_index]
+  if dir == N
+    (rot == LEFT && (return W))
+    (rot == RIGHT && (return E))
+    (rot == UTURN && (return S))
+  elseif dir == E
+    (rot == LEFT && (return N))
+    (rot == RIGHT && (return S))
+    (rot == UTURN && (return W))
+  elseif dir == S
+    (rot == LEFT && (return E))
+    (rot == RIGHT && (return W))
+    (rot == UTURN && (return N))
+  elseif dir == W
+    (rot == LEFT && (return S))
+    (rot == RIGHT && (return N))
+    (rot == UTURN && (return E))
+
+  elseif dir == NE
+    (rot == LEFT && (return NW))
+    (rot == RIGHT && (return SE))
+    (rot == UTURN && (return SW))
+  elseif dir == NW
+    (rot == LEFT && (return SW))
+    (rot == RIGHT && (return NE))
+    (rot == UTURN && (return SE))
+  elseif dir == SE
+    (rot == LEFT && (return NE))
+    (rot == RIGHT && (return SW))
+    (rot == UTURN && (return NW))
+  elseif dir == SW
+    (rot == LEFT && (return SE))
+    (rot == RIGHT && (return NW))
+    (rot == UTURN && (return NE))
+  end
 end
 
 rotate_piece(p::Piece, rot::Rotation) = Piece(p.type, p.color, rotate_direction(p.dir, rot))
@@ -102,7 +136,7 @@ function create_all_actions()
     push!(actions, RotateMove(sq, UTURN))
     push!(actions, RotateMove(sq, LEFT))
   end
-  MVector(actions...)
+  actions
 end
 
 const ACTIONS = create_all_actions()
@@ -147,12 +181,12 @@ function generate_action_mask(board::Board, current_player::Color)
       push!(actions, false)
     end
   end
-  MVector(actions...)
+  actions
 end
 
 function GI.init(::GameSpec)
   # reverse so top left is 63 and bot right is 0
-  board = reverse(MVector{64,Square}(
+  board = reverse([
     BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
     BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
     NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
@@ -161,7 +195,7 @@ function GI.init(::GameSpec)
     NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
     WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
     WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
-  ))
+  ])
   return GameEnv(board, WHITE, false, WHITE, 0, generate_action_mask(board, WHITE))
 end
 
@@ -179,12 +213,12 @@ GI.actions_mask(g::GameEnv) = g.action_mask
 GI.current_state(g::GameEnv) = deepcopy(g)
 
 function GI.set_state!(g::GameEnv, state)
-  g.action_mask = state.action_mask
-  g.board = state.board
-  g.current_player = state.current_player
-  g.is_finished = state.is_finished
-  g.moves_since_capture = state.moves_since_capture
-  g.winner = state.winner
+  g.action_mask = deepcopy(state.action_mask)
+  g.board = deepcopy(state.board)
+  g.current_player = deepcopy(state.current_player)
+  g.is_finished = deepcopy(state.is_finished)
+  g.moves_since_capture = deepcopy(state.moves_since_capture)
+  g.winner = deepcopy(state.winner)
 end
 
 function get_push_square(from::SquareIdx, to::SquareIdx)
@@ -202,10 +236,10 @@ function get_monarchs(board::Board, color::Color)
   for piece in board
     i += 1
     if piece != NA && piece.color == color && piece.type == MONARCH
-      push!(monarchs, i)
+      push!(monarchs, SquareIdx(i))
     end
   end
-  MVector(monarchs...)
+  monarchs
 end
 
 function move_xy_in_dir(x, y, dir::MonarchDirection)
@@ -243,7 +277,7 @@ function fire_laser(board::Board, monarch_sq::SquareIdx)
   dir::MonarchDirection = board[monarch_sq].dir
   x, y = move_xy_in_dir(x, y, dir)
   while valid_xy((x, y))
-    piece::Piece = board[idx_of_xy((x, y))]
+    piece = board[idx_of_xy((x, y))]
     if piece != NA
       if piece.type == MONARCH
         return idx_of_xy((x, y))
@@ -272,7 +306,7 @@ function GI.play!(g::GameEnv, action)
     next = idx_of_xy((x, y))
     if valid_xy((x, y)) && g.board[next] == NA
       @assert 1 <= next <= 64
-      g.board[next] = g.board[to]
+      g.board[next] = g.board[action.to]
     end
     g.board[action.to] = g.board[action.from]
     g.board[action.from] = NA
@@ -283,13 +317,27 @@ function GI.play!(g::GameEnv, action)
   end
   # stage 2: fire lasers
   zapped = 0
+  pre = deepcopy(g.board)
   monarchs = get_monarchs(g.board, g.current_player)
+  zaps = []
   for monarch in monarchs
-    square::SquareIdx = fire_laser(g.board, monarch)
-    if square !== nothing
-      g.board[square] = NA
-      zapped += 1
+    if g.board[monarch] === nothing
+      println("firing laser at: $monarch")
+      println("Preboard:")
+      println(pre)
+      println("board")
+      println(g.board)
+      println("monarchs")
+      println(monarchs)
     end
+    square = fire_laser(g.board, monarch)
+    if square !== nothing
+      push!(zaps, square)
+    end
+  end
+  for square in zaps
+    g.board[square] = NA
+    zapped += 1
   end
 
   curr_monarchs = get_monarchs(g.board, g.current_player)
@@ -319,7 +367,7 @@ end
 GI.white_playing(g::GameEnv) = g.current_player == WHITE
 GI.game_terminated(g::GameEnv) = g.is_finished
 function GI.white_reward(g::GameEnv)
-  if g.is_is_finished
+  if g.is_finished
     if g.moves_since_capture == 50
       return 0
     end
@@ -348,7 +396,7 @@ function flip_colors(board::Board)
     piece == NA ? NA : flip_piece(piece)
     for piece in board
   ]
-  return MVector(list...)
+  return Board(list...)
 end
 
 function generate_piece_types()
