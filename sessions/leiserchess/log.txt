@@ -403,3 +403,38 @@ Initializing a new AlphaZero environment
   
   Running benchmark: AlphaZero against MCTS (400 rollouts)
   
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 653,614
+    Number of regularized network parameters: 647,600
+    Memory footprint per MCTS node: 17450 bytes
+  
+  Running benchmark: AlphaZero against MCTS (400 rollouts)
+  
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 653,614
+    Number of regularized network parameters: 647,600
+    Memory footprint per MCTS node: 17450 bytes
+  
+  Running benchmark: AlphaZero against MCTS (400 rollouts)
+  
+    Average reward: +1.00 (100% won, 0% draw, 0% lost), redundancy: 0.0%
+
+Starting iteration 1
+
+  Starting self-play
+  
+
+Loading environment from: sessions\leiserchess
+
+Starting iteration 1
+
+  Starting self-play
+  

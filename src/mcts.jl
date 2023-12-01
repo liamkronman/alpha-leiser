@@ -211,7 +211,9 @@ function run_simulation!(env::Env, game; η, root=true)
       action_id = argmax(scores)
       action = actions[action_id]
       wp = GI.white_playing(game)
+      #println("Game state before: $state")
       GI.play!(game, action)
+      #println("Game state after: $state")
       wr = GI.white_reward(game)
       r = wp ? wr : -wr
       pswitch = wp != GI.white_playing(game)

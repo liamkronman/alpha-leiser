@@ -162,6 +162,8 @@ mutable struct GameEnv <: GI.AbstractGameEnv
   action_mask::Vector{Bool}
 end
 
+Base.:(==)(a::GameEnv, b::GameEnv) = a.board == b.board && a.current_player == b.current_player && a.is_finished == b.is_finished && a.winner == b.winner && a.moves_since_capture == b.moves_since_capture && a.action_mask == b.action_mask
+
 function generate_action_mask(board::Board, current_player::Color)
   actions = [true]
   for from in 1:64
@@ -221,8 +223,8 @@ GI.spec(::GameEnv) = GameSpec()
 #####
 
 GI.actions(::GameSpec) = ACTIONS
-GI.actions_mask(g::GameEnv) = g.action_mask
-GI.current_state(g::GameEnv) = (g.action_mask, g.board, g.current_player, g.is_finished, g.moves_since_capture, g.winner)
+GI.actions_mask(g::GameEnv) = deepcopy(g.action_mask)
+GI.current_state(g::GameEnv) = (deepcopy(g.action_mask), deepcopy(g.board), deepcopy(g.current_player), deepcopy(g.is_finished), deepcopy(g.moves_since_capture), deepcopy(g.winner))
 
 function GI.set_state!(g::GameEnv, state)
   g.action_mask = deepcopy(state[1])
