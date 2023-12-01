@@ -208,10 +208,6 @@ function get_monarchs(board::Board, color::Color)
   monarchs
 end
 
-function get_laser_target(board::Board, dir::MonarchDirection, sq::SquareIdx)
-
-end
-
 function move_xy_in_dir(x, y, dir::MonarchDirection)
   if dir == N
     return (x, y - 1)
@@ -221,6 +217,7 @@ function move_xy_in_dir(x, y, dir::MonarchDirection)
     return (x, y - 1)
   else
     return (x - 1, y)
+  end
 end
 
 function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
