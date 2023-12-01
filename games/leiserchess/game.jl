@@ -307,7 +307,7 @@ function GI.play!(g::GameEnv, action)
     g.moves_since_capture += 1
   else
     g.moves_since_capture = 0
-
+  end
   if g.moves_since_capture == 50
     g.is_finished = true
   end
