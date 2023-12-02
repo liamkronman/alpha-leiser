@@ -222,7 +222,7 @@ GI.spec(::GameEnv) = GameSpec()
 ##### Game API
 #####
 
-GI.actions(::GameSpec) = ACTIONS
+GI.actions(::GameSpec) = deepcopy(ACTIONS)
 GI.actions_mask(g::GameEnv) = deepcopy(g.action_mask)
 GI.current_state(g::GameEnv) = (deepcopy(g.action_mask), deepcopy(g.board), deepcopy(g.current_player), deepcopy(g.is_finished), deepcopy(g.moves_since_capture), deepcopy(g.winner))
 
@@ -431,7 +431,7 @@ end
 const piece_types = generate_piece_types()
 
 function GI.vectorize_state(::GameSpec, state)
-  board = state[3] == WHITE ? state[2] : flip_colors(state[2])
+  board = state[3] == WHITE ? state[2] : flip_colors(deepcopy(state[2]))
   return Float32[
     board[idx_of_xy((col,row))] == c
     for col in 1:8,

@@ -62,6 +62,9 @@ cd AlphaZero.jl
 export GKSwstype=100  # To avoid an occasional GR bug
 julia --project -e 'import Pkg; Pkg.instantiate()'
 julia --project -e 'using AlphaZero; Scripts.train("leiserchess")'
+
+
+julia --project -e 'using AlphaZero; Scripts.test_game("leiserchess")'
 ```
 
 <div>
