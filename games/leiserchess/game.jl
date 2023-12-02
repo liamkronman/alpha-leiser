@@ -168,6 +168,16 @@ Base.:(==)(a::GameEnv, b::GameEnv) = a.board == b.board && a.current_player == b
 function generate_action_mask(board::Board, current_player::Color)
   actions = [false]
   for row in 1:NUM_ROWS
+    for col in 1:NUM_COLS
+      # if square is a Monarch
+      if board[row, col] != NA && board[row, col].type == MONARCH && board[row, col].color == current_player
+        if fire_laser(board, idx_of_xy((col, row))) !== nothing
+          actions[1] = true
+        end
+      end
+    end
+  end
+  for row in 1:NUM_ROWS
       for col in 1:NUM_COLS
           from_sq = idx_of_xy((col, row))
           new_moves = square_attacks(from_sq)
