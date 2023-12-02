@@ -141,7 +141,7 @@ function create_all_actions()
   end
   if size(actions)[1] != TOTAL_MOVES
     len = size(actions)[1]
-    println("total actions: $len")
+    # println("total actions: $len")
   end
   @assert size(actions)[1] == TOTAL_MOVES
   actions
@@ -201,18 +201,28 @@ function generate_action_mask(board::Board, current_player::Color)
 end
 
 # reverse so top left is 63 and bot right is 0
-initial_board_array = [
-  WM,  NA,  NA, NA,  NA,  NA, NA,  WM,
-  WPL, WPR, NA, WPL, WPR, NA, WPL, WPR,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
-  BPL, BPR, NA, BPL, BPR, NA, BPL, BPR,
-  BM,  NA,  NA, NA,  NA,  NA, NA,  BM
-]
+initial_board_array = reverse([
+  BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
+  BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
+  WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
+  WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
+])
 
-const INITIAL_BOARD = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(reshape(initial_board_array, NUM_ROWS, NUM_COLS))
+function transpose_board(board::Board)
+  transposed_board = similar(board)
+  for row in 1:NUM_ROWS
+      for col in 1:NUM_COLS
+          transposed_board[col, row] = board[row, col]
+      end
+  end
+  return SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(transposed_board)
+end
+
+const INITIAL_BOARD = transpose_board(SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(reshape(initial_board_array, NUM_ROWS, NUM_COLS)))
 
 const INITIAL_MOVES = generate_action_mask(INITIAL_BOARD, WHITE)
 
@@ -237,8 +247,7 @@ GI.current_state(g::GameEnv) = (
     curplayer = g.current_player, 
     is_finished = g.is_finished, 
     winner = g.winner, 
-    moves_since_capture = g.moves_since_capture, 
-    action_mask = g.action_mask
+    moves_since_capture = g.moves_since_capture
 )
 
 function GI.set_state!(g::GameEnv, state)
@@ -247,7 +256,7 @@ function GI.set_state!(g::GameEnv, state)
   g.is_finished = state.is_finished
   g.winner = state.winner
   g.moves_since_capture = state.moves_since_capture
-  g.amask = state.action_mask
+  g.action_mask = generate_action_mask(state.board, state.curplayer)
 end
 
 function get_push_square(from::SquareIdx, to::SquareIdx)
@@ -264,6 +273,7 @@ function get_monarchs(board::Board, color::Color)
   for row in 1:NUM_ROWS
     for col in 1:NUM_COLS
       if board[row, col] != NA && board[row, col].color == color && board[row, col].type == MONARCH
+        # println("found monarch at: $row, $col")
         push!(monarchs, SquareIdx(idx_of_xy((col, row))))
       end
     end
@@ -272,8 +282,9 @@ function get_monarchs(board::Board, color::Color)
 end
 
 function move_xy_in_dir(x, y, dir::MonarchDirection)
+  println("move_xy_in_dir: $x, $y, $dir")
   if dir == N
-    return (x, y - 1)
+    return (x, y + 1)
   elseif dir == E
     return (x + 1, y)
   elseif dir == S
@@ -296,23 +307,28 @@ function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
   elseif pawn_dir == SW
     (dir == N && (return W))
     (dir == E && (return S))
-  else
-    return nothing
   end
+  # println("returning nothing")
+  return nothing
 end
 
 function fire_laser(board::Board, monarch_sq::SquareIdx)
-  x, y = xy_of_idx(Int8(monarch_sq))
-  dir::MonarchDirection = board[monarch_sq].dir
+  x, y = xy_of_idx(monarch_sq)
+  dir::MonarchDirection = board[y,x].dir
   x, y = move_xy_in_dir(x, y, dir)
   while valid_xy((x, y))
-    piece = board[x, y]
+    piece = board[y, x]
     if piece != NA
       if piece.type == MONARCH
         return idx_of_xy((x, y))
       elseif piece.type == PAWN
+        # print piece.dir and dir
+        # println("x,y: $(x), $(y)")
+        # println("piece.dir: $(piece.dir)")
+        # println("dir: $(dir)")
         next_bounce = pawn_bounce(piece.dir, dir)
         if next_bounce === nothing
+          # println("returning")
           return idx_of_xy((x, y))
         else
           dir = next_bounce
@@ -329,6 +345,9 @@ function GI.play!(g::GameEnv, action)
   # change g.board, and update g.winner, g.is_finished
   # and g.moves_since_capture
   # checkmate resets capture timer too
+  # render(g.board)
+  # println("player: $(g.current_player)")
+  # println("action: $action")
   # stage 1: fire lasers
   mutable_board = Array(deepcopy(g.board))
   if isa(action, TranslateMove)
@@ -349,21 +368,23 @@ function GI.play!(g::GameEnv, action)
   end
   g.board = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(reshape(mutable_board, NUM_ROWS, NUM_COLS))
 
+  # render(g.board)
   # stage 2: fire lasers
   zapped = 0
   pre = deepcopy(mutable_board)
   monarchs = get_monarchs(g.board, g.current_player)
   zaps = []
   for monarch in monarchs
-    if mutable_board[monarch] === nothing
-      println("firing laser at: $monarch")
-      println("Preboard:")
-      println(pre)
-      println("board")
-      println(g.board)
-      println("monarchs")
-      println(monarchs)
-    end
+    x, y = xy_of_idx(monarch)
+    # if g.board[y, x] === nothing
+    #   println("firing laser at: $monarch")
+    #   println("Preboard:")
+    #   println(pre)
+    #   println("board")
+    #   println(g.board)
+    #   println("monarchs")
+    #   println(monarchs)
+    # end
     square = fire_laser(g.board, monarch)
     if square !== nothing
       push!(zaps, square)
@@ -371,7 +392,8 @@ function GI.play!(g::GameEnv, action)
   end
   mutable_board = Array(deepcopy(g.board))
   for square in zaps
-    mutable_board[xy_of_idx(Int8(square))...] = NA
+    x,y = xy_of_idx(Int8(square))
+    mutable_board[y,x] = NA
     zapped += 1
   end
   g.board = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(mutable_board)
@@ -466,6 +488,35 @@ function GI.heuristic_value(g::GameEnv)
   end
   return Float64(total)
 end
+
+function render(board::Board)
+  # Unicode symbols for different pieces and directions
+  symbols = Dict(
+      (MONARCH, WHITE, N) => "↑", (MONARCH, WHITE, E) => "→", (MONARCH, WHITE, S) => "↓", (MONARCH, WHITE, W) => "←",
+      (MONARCH, BLACK, N) => "↑", (MONARCH, BLACK, E) => "→", (MONARCH, BLACK, S) => "↓", (MONARCH, BLACK, W) => "←",
+      (PAWN, WHITE, NE) => "◣", (PAWN, WHITE, NW) => "◢", (PAWN, WHITE, SW) => "◥", (PAWN, WHITE, SE) => "◤",
+      (PAWN, BLACK, NE) => "◣", (PAWN, BLACK, NW) => "◢", (PAWN, BLACK, SW) => "◥", (PAWN, BLACK, SE) => "◤"
+  )
+
+  # Render the board
+  for row in NUM_ROWS:-1:1
+      for col in 1:NUM_COLS
+          piece = board[row, col]
+          if piece == NA
+              print(". ")
+          else
+              symbol = symbols[(piece.type, piece.color, piece.dir)]
+              if piece.color == WHITE
+                  print(symbol, "w ")  # White piece
+              else
+                  print(symbol, "b ")  # Black piece
+              end
+          end
+      end
+      println()  # New line after each row
+  end
+end
+
 
 #####
 ##### Symmetries
