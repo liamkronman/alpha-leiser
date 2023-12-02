@@ -43,7 +43,8 @@ const BPR = Piece(PAWN, BLACK, SW)
 const NA = nothing
 
 const Square = Union{Nothing, Piece}
-const Board = Array{Square, 1}
+# const Board = Array{Square, 1}
+const Board = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_SQUARES}
 
 struct NullMove end
 struct TranslateMove
@@ -165,46 +166,53 @@ end
 Base.:(==)(a::GameEnv, b::GameEnv) = a.board == b.board && a.current_player == b.current_player && a.is_finished == b.is_finished && a.winner == b.winner && a.moves_since_capture == b.moves_since_capture && a.action_mask == b.action_mask
 
 function generate_action_mask(board::Board, current_player::Color)
-  actions = [true]
-  for from in 1:64
-    new_moves = square_attacks(from)
-    is_our_piece = board[from] != NA && board[from].color == current_player
-    for to in new_moves
-      # qi is higher and theres not a king there
-      has_more_chi = qi_at(Int8(from)) > qi_at(Int8(to)) && (board[to] == NA || board[to].type == PAWN)
-      if is_our_piece && (board[to] == NA || has_more_chi)
-        push!(actions, true)
-      else
-        push!(actions, false)
+  actions = [false]
+  for row in 1:NUM_ROWS
+      for col in 1:NUM_COLS
+          from_sq = idx_of_xy((col, row))
+          new_moves = square_attacks(from_sq)
+          is_our_piece = board[row, col] != NA && board[row, col].color == current_player
+          for to_sq in new_moves
+              (to_col, to_row) = xy_of_idx(Int8(to_sq))
+              has_more_chi = qi_at(Int8(from_sq)) > qi_at(Int8(to_sq)) && (board[to_row, to_col] == NA || board[to_row, to_col].type == PAWN)
+              if is_our_piece && (board[to_row, to_col] == NA || has_more_chi)
+                  push!(actions, true)
+              else
+                  push!(actions, false)
+              end
+          end
       end
-    end
   end
-  for sq in 1:64
-    if board[sq] != NA && board[sq].color == current_player
-      push!(actions, true)
-      push!(actions, true)
-      push!(actions, true)
-    else
-      push!(actions, false)
-      push!(actions, false)
-      push!(actions, false)
-    end
+  for row in 1:NUM_ROWS
+      for col in 1:NUM_COLS
+          if board[row, col] != NA && board[row, col].color == current_player
+              push!(actions, true)  # Rotate RIGHT
+              push!(actions, true)  # Rotate UTURN
+              push!(actions, true)  # Rotate LEFT
+          else
+              push!(actions, false)
+              push!(actions, false)
+              push!(actions, false)
+          end
+      end
   end
-  @assert size(actions)[1] == TOTAL_MOVES
+  @assert length(actions) == TOTAL_MOVES
   actions
 end
 
 # reverse so top left is 63 and bot right is 0
-const INITIAL_BOARD = reverse([
-  BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
-  BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-  NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-  WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
-  WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
-])
+initial_board_array = [
+  WM,  NA,  NA, NA,  NA,  NA, NA,  WM,
+  WPL, WPR, NA, WPL, WPR, NA, WPL, WPR,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
+  NA,  NA,  NA, NA,  NA,  NA, NA,  NA,
+  BPL, BPR, NA, BPL, BPR, NA, BPL, BPR,
+  BM,  NA,  NA, NA,  NA,  NA, NA,  BM
+]
+
+const INITIAL_BOARD = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(reshape(initial_board_array, NUM_ROWS, NUM_COLS))
 
 const INITIAL_MOVES = generate_action_mask(INITIAL_BOARD, WHITE)
 
@@ -224,15 +232,22 @@ GI.spec(::GameEnv) = GameSpec()
 
 GI.actions(::GameSpec) = deepcopy(ACTIONS)
 GI.actions_mask(g::GameEnv) = deepcopy(g.action_mask)
-GI.current_state(g::GameEnv) = (deepcopy(g.action_mask), deepcopy(g.board), deepcopy(g.current_player), deepcopy(g.is_finished), deepcopy(g.moves_since_capture), deepcopy(g.winner))
+GI.current_state(g::GameEnv) = (
+    board = g.board, 
+    curplayer = g.current_player, 
+    is_finished = g.is_finished, 
+    winner = g.winner, 
+    moves_since_capture = g.moves_since_capture, 
+    action_mask = g.action_mask
+)
 
 function GI.set_state!(g::GameEnv, state)
-  g.action_mask = deepcopy(state[1])
-  g.board = deepcopy(state[2])
-  g.current_player = deepcopy(state[3])
-  g.is_finished = deepcopy(state[4])
-  g.moves_since_capture = deepcopy(state[5])
-  g.winner = deepcopy(state[6])
+  g.board = state.board
+  g.current_player = state.curplayer
+  g.is_finished = state.is_finished
+  g.winner = state.winner
+  g.moves_since_capture = state.moves_since_capture
+  g.amask = state.action_mask
 end
 
 function get_push_square(from::SquareIdx, to::SquareIdx)
@@ -245,12 +260,12 @@ function get_push_square(from::SquareIdx, to::SquareIdx)
 end
 
 function get_monarchs(board::Board, color::Color)
-  monarchs = []
-  i = 0
-  for piece in board
-    i += 1
-    if piece != NA && piece.color == color && piece.type == MONARCH
-      push!(monarchs, SquareIdx(i))
+  monarchs = SquareIdx[]
+  for row in 1:NUM_ROWS
+    for col in 1:NUM_COLS
+      if board[row, col] != NA && board[row, col].color == color && board[row, col].type == MONARCH
+        push!(monarchs, SquareIdx(idx_of_xy((col, row))))
+      end
     end
   end
   monarchs
@@ -287,11 +302,11 @@ function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
 end
 
 function fire_laser(board::Board, monarch_sq::SquareIdx)
-  x, y = xy_of_idx(monarch_sq)
+  x, y = xy_of_idx(Int8(monarch_sq))
   dir::MonarchDirection = board[monarch_sq].dir
   x, y = move_xy_in_dir(x, y, dir)
   while valid_xy((x, y))
-    piece = board[idx_of_xy((x, y))]
+    piece = board[x, y]
     if piece != NA
       if piece.type == MONARCH
         return idx_of_xy((x, y))
@@ -315,27 +330,32 @@ function GI.play!(g::GameEnv, action)
   # and g.moves_since_capture
   # checkmate resets capture timer too
   # stage 1: fire lasers
+  mutable_board = Array(deepcopy(g.board))
   if isa(action, TranslateMove)
-    x, y = get_push_square(action.from, action.to)
-    next = idx_of_xy((x, y))
-    if valid_xy((x, y)) && g.board[next] == NA
-      @assert 1 <= next <= 64
-      g.board[next] = g.board[action.to]
-    end
-    g.board[action.to] = g.board[action.from]
-    g.board[action.from] = NA
+    # Convert the linear indices to (row, col)
+    from_xy = xy_of_idx(action.from)
+    to_xy = xy_of_idx(action.to)
+
+    mutable_board[to_xy...] = g.board[from_xy...]  # Move the piece
+    mutable_board[from_xy...] = NA  # Set the original position to NA
   elseif isa(action, RotateMove)
-    g.board[action.square] = rotate_piece(g.board[action.square], action.rot)
+    # Convert the linear index to (row, col)
+    square_xy = xy_of_idx(action.square)
+    if g.board[square_xy...] != NA
+      mutable_board[square_xy...] = rotate_piece(g.board[square_xy...], action.rot)  # Rotate the piece
+    end
   else
     # null move do nothing
   end
+  g.board = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(reshape(mutable_board, NUM_ROWS, NUM_COLS))
+
   # stage 2: fire lasers
   zapped = 0
-  pre = deepcopy(g.board)
+  pre = deepcopy(mutable_board)
   monarchs = get_monarchs(g.board, g.current_player)
   zaps = []
   for monarch in monarchs
-    if g.board[monarch] === nothing
+    if mutable_board[monarch] === nothing
       println("firing laser at: $monarch")
       println("Preboard:")
       println(pre)
@@ -349,10 +369,12 @@ function GI.play!(g::GameEnv, action)
       push!(zaps, square)
     end
   end
+  mutable_board = Array(deepcopy(g.board))
   for square in zaps
-    g.board[square] = NA
+    mutable_board[xy_of_idx(Int8(square))...] = NA
     zapped += 1
   end
+  g.board = SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(mutable_board)
 
   curr_monarchs = get_monarchs(g.board, g.current_player)
   other_monarchs = get_monarchs(g.board, !g.current_player)
@@ -406,11 +428,8 @@ function flip_piece(p::Piece)
 end
 
 function flip_colors(board::Board)
-  list = [
-    piece == NA ? NA : flip_piece(piece)
-    for piece in board
-  ]
-  return list
+  new_board = [piece == NA ? NA : flip_piece(piece) for piece in board]
+  return SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_ROWS * NUM_COLS}(new_board)
 end
 
 function generate_piece_types()
@@ -431,12 +450,11 @@ end
 const piece_types = generate_piece_types()
 
 function GI.vectorize_state(::GameSpec, state)
-  board = state[3] == WHITE ? state[2] : flip_colors(deepcopy(state[2]))
+  board = state.curplayer == WHITE ? state.board : flip_colors(state.board)
   return Float32[
-    board[idx_of_xy((col,row))] == c
-    for col in 1:8,
-        row in 1:8,
-        c in piece_types]
+    board[row, col] == c
+    for row in 1:NUM_ROWS, col in 1:NUM_COLS, c in piece_types
+  ]
 end
 
 function GI.heuristic_value(g::GameEnv)

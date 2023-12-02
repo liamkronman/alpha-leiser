@@ -257,6 +257,11 @@ a call to [`MCTS.explore!`](@ref).
 function policy(env::Env, game)
   actions = GI.available_actions(game)
   state = GI.current_state(game)
+  # print the env.tree keys
+  println("env.tree keys:\n$(keys(env.tree))")
+  # println("env.tree:\n$(env.tree)")
+  # print the state
+  println("state:\n$state")
   info =
     try env.tree[state]
     catch e

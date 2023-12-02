@@ -1,0 +1,11 @@
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 653,614
+    Number of regularized network parameters: 647,600
+    Memory footprint per MCTS node: 16602 bytes
+  
+  Running benchmark: AlphaZero against MCTS (2 rollouts)
+  
