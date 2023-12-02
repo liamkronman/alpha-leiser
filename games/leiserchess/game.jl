@@ -282,7 +282,7 @@ function get_monarchs(board::Board, color::Color)
 end
 
 function move_xy_in_dir(x, y, dir::MonarchDirection)
-  println("move_xy_in_dir: $x, $y, $dir")
+  # println("move_xy_in_dir: $x, $y, $dir")
   if dir == N
     return (x, y + 1)
   elseif dir == E
