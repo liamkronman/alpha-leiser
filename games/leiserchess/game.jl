@@ -165,13 +165,54 @@ end
 
 Base.:(==)(a::GameEnv, b::GameEnv) = a.board == b.board && a.current_player == b.current_player && a.is_finished == b.is_finished && a.winner == b.winner && a.moves_since_capture == b.moves_since_capture && a.action_mask == b.action_mask
 
+function move_xy_in_dir(x, y, dir::MonarchDirection)
+  # println("move_xy_in_dir: $x, $y, $dir")
+  if dir == N
+    return (x, y + 1)
+  elseif dir == E
+    return (x + 1, y)
+  elseif dir == S
+    return (x, y - 1)
+  else
+    return (x - 1, y)
+  end
+end
+
+function fire_laser(board::Board, monarch_sq::SquareIdx)
+  x, y = xy_of_idx(monarch_sq)
+  dir::MonarchDirection = board[y,x].dir
+  x, y = move_xy_in_dir(x, y, dir)
+  while valid_xy((x, y))
+    piece = board[y, x]
+    if piece != NA
+      if piece.type == MONARCH
+        return idx_of_xy((x, y))
+      elseif piece.type == PAWN
+        # print piece.dir and dir
+        # println("x,y: $(x), $(y)")
+        # println("piece.dir: $(piece.dir)")
+        # println("dir: $(dir)")
+        next_bounce = pawn_bounce(piece.dir, dir)
+        if next_bounce === nothing
+          # println("returning")
+          return idx_of_xy((x, y))
+        else
+          dir = next_bounce
+        end
+      end
+    end
+    x, y = move_xy_in_dir(x, y, dir)
+  end
+  return nothing
+end
+
 function generate_action_mask(board::Board, current_player::Color)
   actions = [false]
   for row in 1:NUM_ROWS
     for col in 1:NUM_COLS
       # if square is a Monarch
       if board[row, col] != NA && board[row, col].type == MONARCH && board[row, col].color == current_player
-        if fire_laser(board, idx_of_xy((col, row))) !== nothing
+        if fire_laser(board, Int8(idx_of_xy((col, row)))) !== nothing
           actions[1] = true
         end
       end
@@ -291,19 +332,6 @@ function get_monarchs(board::Board, color::Color)
   monarchs
 end
 
-function move_xy_in_dir(x, y, dir::MonarchDirection)
-  # println("move_xy_in_dir: $x, $y, $dir")
-  if dir == N
-    return (x, y + 1)
-  elseif dir == E
-    return (x + 1, y)
-  elseif dir == S
-    return (x, y - 1)
-  else
-    return (x - 1, y)
-  end
-end
-
 function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
   if pawn_dir == NE
     (dir == S && (return E))
@@ -319,34 +347,6 @@ function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
     (dir == E && (return S))
   end
   # println("returning nothing")
-  return nothing
-end
-
-function fire_laser(board::Board, monarch_sq::SquareIdx)
-  x, y = xy_of_idx(monarch_sq)
-  dir::MonarchDirection = board[y,x].dir
-  x, y = move_xy_in_dir(x, y, dir)
-  while valid_xy((x, y))
-    piece = board[y, x]
-    if piece != NA
-      if piece.type == MONARCH
-        return idx_of_xy((x, y))
-      elseif piece.type == PAWN
-        # print piece.dir and dir
-        # println("x,y: $(x), $(y)")
-        # println("piece.dir: $(piece.dir)")
-        # println("dir: $(dir)")
-        next_bounce = pawn_bounce(piece.dir, dir)
-        if next_bounce === nothing
-          # println("returning")
-          return idx_of_xy((x, y))
-        else
-          dir = next_bounce
-        end
-      end
-    end
-    x, y = move_xy_in_dir(x, y, dir)
-  end
   return nothing
 end
 
