@@ -1,0 +1,47 @@
+
+Initializing a new AlphaZero environment
+
+  Initial report
+  
+    Number of network parameters: 653,614
+    Number of regularized network parameters: 647,600
+    Memory footprint per MCTS node: 15280 bytes
+  
+  Running benchmark: AlphaZero against MCTS (400 rollouts)
+  
+    Average reward: +0.00 (50% won, 0% draw, 50% lost), redundancy: 5.4%
+
+Starting iteration 1
+
+  Starting self-play
+  
+    Generating 10 samples per second on average
+    Average exploration depth: 1.0
+    MCTS memory footprint per worker: 61.12kB
+    Experience buffer size: 1,000 (797 distinct boards)
+  
+  Memory Analysis
+  
+      Loss      Lv      Lp    Lreg    Linv   Hpnet      Hp  Wtot   Nb     Ns
+    2.2111  1.0676  0.0175  0.2237  0.9023  4.0943  4.0768   983  797  1,000  all samples
+    2.2111  1.0676  0.0175  0.2237  0.9023  4.0943  4.0768   983  797  1,000  latest batch
+    2.2111  1.0676  0.0175  0.2237  0.9023  4.0943  4.0768   247  198    250  1 to 1 turns left
+    2.2103  1.0676  0.0167  0.2237  0.9023  4.0943  4.0776   247  196    250  1 to 1 turns left
+    2.2108  1.0676  0.0173  0.2237  0.9023  4.0943  4.0770   248  199    250  1 to 1 turns left
+    2.2108  1.0676  0.0173  0.2237  0.9023  4.0943  4.0770   249  196    250  1 to 1 turns left
+  
+  Starting learning
+  
+    Optimizing the loss
+    
+         Loss       Lv       Lp     Lreg     Linv       Hp    Hpnet
+       2.1433   1.0000   0.0176   0.2237   0.9021   4.0768   4.0943
+          NaN      NaN      NaN      NaN      NaN   4.0768      NaN
+    
+    Launching a checkpoint evaluation
+    
+      Average reward: +0.00 (50% won, 0% draw, 50% lost, network replaced), redundancy: 6.5%
+  
+  Running benchmark: AlphaZero against MCTS (400 rollouts)
+  
+    Average reward: +0.00 (50% won, 0% draw, 50% lost), redundancy: 7.9%
