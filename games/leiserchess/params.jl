@@ -9,8 +9,8 @@ netparams = NetLib.SimpleNetHP(
 self_play = SelfPlayParams(
   sim=SimParams(
     num_games=1000,
-    num_workers=1,
-    batch_size=1,
+    num_workers=128,
+    batch_size=128,
     use_gpu=false,
     reset_every=4,
     flip_probability=0.,
@@ -25,8 +25,8 @@ self_play = SelfPlayParams(
 arena = ArenaParams(
   sim=SimParams(
     num_games=100,
-    num_workers=1,
-    batch_size=1,
+    num_workers=100,
+    batch_size=100,
     use_gpu=false,
     reset_every=1,
     flip_probability=0.,
@@ -68,8 +68,8 @@ params = Params(
 benchmark_sim = SimParams(
   arena.sim;
   num_games=400,
-  num_workers=1,
-  batch_size=1)
+  num_workers=100,
+  batch_size=100)
 
 benchmark = [
   Benchmark.Duel(
@@ -79,4 +79,4 @@ benchmark = [
   ]
 
 experiment = Experiment(
-  "leiserchess", GameSpec(), params, Network, netparams, benchmark)
+  "leiserchess_experiment", GameSpec(), params, Network, netparams, benchmark)
