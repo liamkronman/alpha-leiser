@@ -101,10 +101,18 @@ end
 
 rotate_piece(p::Piece, rot::Rotation) = Piece(p.type, p.color, rotate_direction(p.dir, rot))
 
-function qi_at(sq::SquareIdx)
-  sq -= 1 # to account for julia arrays
-  f = sq % 8
-  r = div(sq, 8) 
+function qi_at(idx::SquareIdx, piece::Union{Piece, Nothing} = NA)
+  if piece != NA
+      # Monarchs always have the highest qi
+      if piece.type == MONARCH
+          return Inf
+      end
+  end
+
+  # Original qi calculation for pawns
+  idx -= 1  # Adjust for Julia arrays
+  f = idx % 8
+  r = div(idx, 8)
   rows_from_center = 2 * r - 7
   files_from_center = 2 * f - 7
   return 98 - (rows_from_center * rows_from_center + files_from_center * files_from_center)
@@ -220,20 +228,33 @@ function generate_action_mask(board::Board, current_player::Color)
     end
   end
   for row in 1:NUM_ROWS
-      for col in 1:NUM_COLS
-          from_sq = idx_of_xy((col, row))
-          new_moves = square_attacks(from_sq)
-          is_our_piece = board[row, col] != NA && board[row, col].color == current_player
-          for to_sq in new_moves
-              (to_col, to_row) = xy_of_idx(Int8(to_sq))
-              has_more_chi = qi_at(Int8(from_sq)) > qi_at(Int8(to_sq)) && (board[to_row, to_col] == NA || board[to_row, to_col].type == PAWN)
-              if is_our_piece && (board[to_row, to_col] == NA || has_more_chi)
-                  push!(actions, true)
-              else
-                  push!(actions, false)
-              end
-          end
-      end
+    for col in 1:NUM_COLS
+        from_sq = idx_of_xy((col, row))
+        new_moves = square_attacks(from_sq)
+        moving_piece = board[row, col]
+        is_our_piece = moving_piece != NA && moving_piece.color == current_player
+
+        for to_sq in new_moves
+            (to_col, to_row) = xy_of_idx(Int8(to_sq))
+            target_piece = board[to_row, to_col]
+
+            # Determine if the moving piece can shove the target piece
+            can_shove = target_piece == NA
+            if moving_piece != NA && moving_piece.type == MONARCH
+                # Monarchs can always shove pawns, but not other monarchs
+                can_shove = can_shove || target_piece == NA || target_piece.type == PAWN
+            elseif moving_piece != NA && moving_piece.type == PAWN && target_piece != NA && target_piece.type == PAWN
+                # Pawns can shove other pawns if they have equal or more qi
+                can_shove = can_shove || qi_at(Int8(from_sq), moving_piece) >= qi_at(Int8(to_sq), target_piece)
+            end
+
+            if is_our_piece && can_shove
+                push!(actions, true)
+            else
+                push!(actions, false)
+            end
+        end
+    end
   end
   for row in 1:NUM_ROWS
       for col in 1:NUM_COLS
@@ -362,14 +383,42 @@ function GI.play!(g::GameEnv, action)
   # stage 1: fire lasers
   mutable_board = Array(deepcopy(g.board))
   if isa(action, TranslateMove)
-    # Convert the linear indices to (row, col)
-    from_x, from_y = xy_of_idx(action.from)
-    to_x, to_y = xy_of_idx(action.to)
-    println("from: $from_x, $from_y")
-    println("to: $to_x, $to_y")
+    from_xy = xy_of_idx(action.from)
+    to_xy = xy_of_idx(action.to)
 
-    mutable_board[to_y, to_x] = g.board[from_y, from_x]  # Move the piece
-    mutable_board[from_y, from_x] = NA  # Set the original position to NA
+    moving_piece = mutable_board[from_xy[2], from_xy[1]]
+    shove_direction = (to_xy[1] - from_xy[1], to_xy[2] - from_xy[2])
+    current_xy = to_xy
+    moving_qi = qi_at(action.from)
+
+    # Loop through squares in the shove direction
+    while true
+        next_xy = (current_xy[1] + shove_direction[1], current_xy[2] + shove_direction[2])
+
+        if !valid_xy(next_xy)
+            mutable_board[current_xy[2], current_xy[1]] = NA
+            break
+        end
+
+        target_piece = mutable_board[next_xy[2], next_xy[1]]
+
+        if target_piece == NA
+            mutable_board[next_xy[2], next_xy[1]] = mutable_board[current_xy[2], current_xy[1]]
+            mutable_board[current_xy[2], current_xy[1]] = NA
+            break
+        else
+            target_qi = qi_at(idx_of_xy((next_xy[1], next_xy[2])))
+            if moving_qi < target_qi
+                break
+            else
+                mutable_board[next_xy[2], next_xy[1]] = NA
+                current_xy = next_xy
+            end
+        end
+    end
+
+    mutable_board[to_xy[2], to_xy[1]] = moving_piece
+    mutable_board[from_xy[2], from_xy[1]] = NA
   elseif isa(action, RotateMove)
     # Convert the linear index to (row, col)
     square_xy = xy_of_idx(action.square)
@@ -437,16 +486,17 @@ end
 
 GI.white_playing(g::GameEnv) = g.current_player == WHITE
 GI.game_terminated(g::GameEnv) = g.is_finished
-function GI.white_reward(g::GameEnv)
+function GI.white_reward(g::GameEnv) :: Float64
   if g.is_finished
     if g.moves_since_capture == 50
-      return 0
+      return 0.0
+    elseif g.winner == WHITE
+      return 1.0
+    elseif g.winner == BLACK
+      return -1.0
     end
-    g.winner == WHITE && (return 1.)
-    g.winner == BLACK && (return -1.)
-  else
-    return 0
   end
+  return 0.0
 end
 
 #####
