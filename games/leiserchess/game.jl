@@ -413,14 +413,12 @@ function GI.play!(g::GameEnv, action)
 
   curr_monarchs = get_monarchs(g.board, g.current_player)
   other_monarchs = get_monarchs(g.board, !g.current_player)
-  println("curr_monarchs: $curr_monarchs")
-  println("other_monarchs: $other_monarchs")
-  if curr_monarchs < other_monarchs
+  if length(curr_monarchs) < length(other_monarchs)
     g.winner = !g.current_player
     g.is_finished = true
     g.moves_since_capture = 0
   end
-  if other_monarchs == 0
+  if length(other_monarchs) == 0
     g.winner = g.current_player
     g.is_finished = true
     g.moves_since_capture = 0
