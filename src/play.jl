@@ -372,6 +372,7 @@ function interactive!(game::AbstractGameEnv, player)
     GI.render(game)
     turn += 1
   end
+  println("game over")
   catch e
     isa(e, Quit) || rethrow(e)
     return

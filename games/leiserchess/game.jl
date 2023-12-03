@@ -255,12 +255,12 @@ end
 # reverse so top left is 63 and bot right is 0
 initial_board_array = reverse([
   BM,  NA,  NA, NA,  NA,  NA, NA,  BM  ,
-  BPL, BPR, NA, BPL, BPR, NA, BPL, BPR ,
+  BPR, BPL, NA, BPR, BPL, NA, BPR, BPL ,
   NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
   NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
   NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
   NA,  NA,  NA, NA,  NA,  NA, NA,  NA  ,
-  WPL, WPR, NA, WPL, WPR, NA, WPL, WPR ,
+  WPR, WPL, NA, WPR, WPL, NA, WPR, WPL ,
   WM,  NA,  NA, NA,  NA,  NA, NA,  WM  ,
 ])
 
@@ -363,11 +363,13 @@ function GI.play!(g::GameEnv, action)
   mutable_board = Array(deepcopy(g.board))
   if isa(action, TranslateMove)
     # Convert the linear indices to (row, col)
-    from_xy = xy_of_idx(action.from)
-    to_xy = xy_of_idx(action.to)
+    from_x, from_y = xy_of_idx(action.from)
+    to_x, to_y = xy_of_idx(action.to)
+    println("from: $from_x, $from_y")
+    println("to: $to_x, $to_y")
 
-    mutable_board[to_xy...] = g.board[from_xy...]  # Move the piece
-    mutable_board[from_xy...] = NA  # Set the original position to NA
+    mutable_board[to_y, to_x] = g.board[from_y, from_x]  # Move the piece
+    mutable_board[from_y, from_x] = NA  # Set the original position to NA
   elseif isa(action, RotateMove)
     # Convert the linear index to (row, col)
     square_xy = xy_of_idx(action.square)
@@ -411,6 +413,8 @@ function GI.play!(g::GameEnv, action)
 
   curr_monarchs = get_monarchs(g.board, g.current_player)
   other_monarchs = get_monarchs(g.board, !g.current_player)
+  println("curr_monarchs: $curr_monarchs")
+  println("other_monarchs: $other_monarchs")
   if curr_monarchs < other_monarchs
     g.winner = !g.current_player
     g.is_finished = true
@@ -500,35 +504,6 @@ function GI.heuristic_value(g::GameEnv)
   return Float64(total)
 end
 
-function render(board::Board)
-  # Unicode symbols for different pieces and directions
-  symbols = Dict(
-      (MONARCH, WHITE, N) => "↑", (MONARCH, WHITE, E) => "→", (MONARCH, WHITE, S) => "↓", (MONARCH, WHITE, W) => "←",
-      (MONARCH, BLACK, N) => "↑", (MONARCH, BLACK, E) => "→", (MONARCH, BLACK, S) => "↓", (MONARCH, BLACK, W) => "←",
-      (PAWN, WHITE, NE) => "◣", (PAWN, WHITE, NW) => "◢", (PAWN, WHITE, SW) => "◥", (PAWN, WHITE, SE) => "◤",
-      (PAWN, BLACK, NE) => "◣", (PAWN, BLACK, NW) => "◢", (PAWN, BLACK, SW) => "◥", (PAWN, BLACK, SE) => "◤"
-  )
-
-  # Render the board
-  for row in NUM_ROWS:-1:1
-      for col in 1:NUM_COLS
-          piece = board[row, col]
-          if piece == NA
-              print(". ")
-          else
-              symbol = symbols[(piece.type, piece.color, piece.dir)]
-              if piece.color == WHITE
-                  print(symbol, "w ")  # White piece
-              else
-                  print(symbol, "b ")  # Black piece
-              end
-          end
-      end
-      println()  # New line after each row
-  end
-end
-
-
 #####
 ##### Symmetries
 #####
@@ -603,12 +578,18 @@ function GI.render(g::GameEnv; with_position_names=true, botmargin=true)
     end
     print("\n")
     # Print board
-    for row in NUM_ROWS:-1:1
+    for row in 1:NUM_ROWS
         for col in 1:NUM_COLS
-            c = g.board[idx_of_xy((col, row))]
-            print(c.color, cell_mark(c), crayon"reset", " ")
+          c = g.board[idx_of_xy((row, col))]
+            if c !== NA  # Add this check
+              color_str = c.color == WHITE ? "w" : "b"
+              symbol = cell_mark(c)
+              print(symbol, color_str, " ")
+            else
+              print(". ")  # Handle the nothing case
+            end
         end
-        print("\n")
+        println()  # New line after each row
     end
     botmargin && print("\n")
 end

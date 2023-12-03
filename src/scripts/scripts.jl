@@ -2,6 +2,7 @@ module Scripts
 
   using ..AlphaZero
   using ..AlphaZero.UserInterface: Session, resume!
+  using Serialization
 
   include("dummy_run.jl")
   export dummy_run
@@ -37,11 +38,15 @@ module Scripts
   explore(s::String; args...) = explore(Examples.experiments[s]; args...)
 
   function play(e::Experiment; args...)
-    session = Session(e; args...)
+    # session = Session(e; args...)
+    @info "Starting interactive session"
+    gspec = deserialize(joinpath("sessions/leiserchess_experiment", "gspec.data"))
     if GI.two_players(e.gspec)
-      interactive!(session.env.gspec, AlphaZeroPlayer(session), Human())
+      @info "Playing against the current agent"
+      # interactive!(gspec, AlphaZeroPlayer(session), Human())
+      interactive!(gspec, Human(), Human())
     else
-      interactive!(session.env.gspec, Human())
+      interactive!(gspec, Human())
     end
   end
 
