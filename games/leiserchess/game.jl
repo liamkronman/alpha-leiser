@@ -21,7 +21,7 @@ const Direction = Union{MonarchDirection, PawnDirection}
 @enum(Rotation, RIGHT, UTURN, LEFT)
 const SquareIdx = Int8
 
-idx_of_xy((x, y)) = (y - 1) * 8 + ((9 - x) - 1) + 1
+idx_of_xy((x, y)) = SquareIdx((y - 1) * 8 + ((9 - x) - 1) + 1)
 valid_xy((x, y)) = x >= 1 && x <= 8 && y >= 1 && y <= 8
 xy_of_idx(idx::SquareIdx) = (9 - ((idx - 1) % 8 + 1), (idx - 1) ÷ 8 + 1)
 
@@ -101,15 +101,7 @@ end
 
 rotate_piece(p::Piece, rot::Rotation) = Piece(p.type, p.color, rotate_direction(p.dir, rot))
 
-function qi_at(idx::SquareIdx, piece::Union{Piece, Nothing} = NA)
-  if piece != NA
-      # Monarchs always have the highest qi
-      if piece.type == MONARCH
-          return Inf
-      end
-  end
-
-  # Original qi calculation for pawns
+function qi_at(idx::SquareIdx)
   idx -= 1  # Adjust for Julia arrays
   f = idx % 8
   r = div(idx, 8)
@@ -170,6 +162,7 @@ mutable struct GameEnv <: GI.AbstractGameEnv
   winner::Color
   moves_since_capture::Int32
   action_mask::Vector{Bool}
+  move_log::Vector{String}
 end
 
 Base.:(==)(a::GameEnv, b::GameEnv) = a.board == b.board && a.current_player == b.current_player && a.is_finished == b.is_finished && a.winner == b.winner && a.moves_since_capture == b.moves_since_capture && a.action_mask == b.action_mask
@@ -223,6 +216,7 @@ function generate_action_mask(board::Board, current_player::Color)
       if board[row, col] != NA && board[row, col].type == MONARCH && board[row, col].color == current_player
         if fire_laser(board, Int8(idx_of_xy((col, row)))) !== nothing
           actions[1] = true
+          break
         end
       end
     end
@@ -245,7 +239,7 @@ function generate_action_mask(board::Board, current_player::Color)
                 can_shove = can_shove || target_piece == NA || target_piece.type == PAWN
             elseif moving_piece != NA && moving_piece.type == PAWN && target_piece != NA && target_piece.type == PAWN
                 # Pawns can shove other pawns if they have equal or more qi
-                can_shove = can_shove || qi_at(Int8(from_sq), moving_piece) >= qi_at(Int8(to_sq), target_piece)
+                can_shove = can_shove || qi_at(Int8(from_sq)) >= qi_at(Int8(to_sq))
             end
 
             if is_our_piece && can_shove
@@ -299,7 +293,7 @@ const INITIAL_BOARD = transpose_board(SMatrix{NUM_ROWS, NUM_COLS, Square, NUM_RO
 
 const INITIAL_MOVES = generate_action_mask(INITIAL_BOARD, WHITE)
 
-const INITIAL_STATE = GameEnv(INITIAL_BOARD, WHITE, false, WHITE, 0, INITIAL_MOVES)
+const INITIAL_STATE = GameEnv(INITIAL_BOARD, WHITE, false, WHITE, 0, INITIAL_MOVES, [])
 
 function GI.init(::GameSpec)
   return deepcopy(INITIAL_STATE)
@@ -372,14 +366,42 @@ function pawn_bounce(pawn_dir::PawnDirection, dir::MonarchDirection)
   return nothing
 end
 
+function format_move(action)
+  if isa(action, TranslateMove)
+      from_xy = xy_of_idx(action.from)
+      to_xy = xy_of_idx(action.to)
+      return "($(from_xy[1]),$(from_xy[2])) -> ($(to_xy[1]),$(to_xy[2]))"
+  elseif isa(action, RotateMove)
+      square_xy = xy_of_idx(action.square)
+      rot_str = action.rot == RIGHT ? "R" : action.rot == UTURN ? "U" : "L"
+      return "($(square_xy[1]),$(square_xy[2])) rot $rot_str"
+  end
+  return "Invalid action"
+end
+
 function GI.play!(g::GameEnv, action)
+  # println("play!")
   @assert !g.is_finished
+  # println("not finished")
   # change g.board, and update g.winner, g.is_finished
   # and g.moves_since_capture
   # checkmate resets capture timer too
   # render(g.board)
   # println("player: $(g.current_player)")
   # println("action: $action")
+
+  # Find the index of the action in the list of all possible actions
+  action_index = findfirst(==(action), ACTIONS)
+
+  # Check if the action is in the action mask
+  # if action_index === nothing || !g.action_mask[action_index]
+  #   println("Invalid action: $action is not in the action mask.")
+  #   return
+  # end
+
+  formatted_action = format_move(action)
+  push!(g.move_log, formatted_action)
+
   # stage 1: fire lasers
   mutable_board = Array(deepcopy(g.board))
   if isa(action, TranslateMove)
@@ -480,6 +502,15 @@ function GI.play!(g::GameEnv, action)
   if g.moves_since_capture == 50
     g.is_finished = true
   end
+
+  if g.is_finished
+    GI.render(g)
+    # println("\nMove Log:")
+    for (i, move) in enumerate(g.move_log)
+      # println("Move $i: $move")
+    end
+  end
+  
   g.current_player = !g.current_player
   g.action_mask = generate_action_mask(g.board, g.current_player)
 end
@@ -589,6 +620,8 @@ function GI.parse_action(::GameSpec, str::String)
     move_pattern = r"\((\d+),(\d+)\) -> \((\d+),(\d+)\)"
     rotate_pattern = r"\((\d+),(\d+)\) rot (R|U|L)"
 
+    # println("parsing")
+
     # Match for move action
     move_match = match(move_pattern, str)
     if move_match !== nothing
@@ -596,6 +629,7 @@ function GI.parse_action(::GameSpec, str::String)
         to_x, to_y = parse(Int, move_match.captures[3]), parse(Int, move_match.captures[4])
         from_idx = idx_of_xy((from_x, from_y))
         to_idx = idx_of_xy((to_x, to_y))
+        # println("translating")
         return TranslateMove(from_idx, to_idx)
     end
 
