@@ -1,5 +1,6 @@
 import AlphaZero.GI
 using StaticArrays
+using Crayons
 
 const NUM_COLS = 8
 const NUM_ROWS = 8
@@ -605,7 +606,7 @@ function GI.render(g::GameEnv; with_position_names=true, botmargin=true)
     for row in NUM_ROWS:-1:1
         for col in 1:NUM_COLS
             c = g.board[idx_of_xy((col, row))]
-            print(cell_color(c), cell_mark(c), crayon"reset", " ")
+            print(c.color, cell_mark(c), crayon"reset", " ")
         end
         print("\n")
     end
