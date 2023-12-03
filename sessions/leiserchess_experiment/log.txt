@@ -45,3 +45,6 @@ Starting iteration 1
   Running benchmark: AlphaZero against MCTS (400 rollouts)
   
     Average reward: +0.00 (50% won, 0% draw, 50% lost), redundancy: 7.9%
+
+Loading environment from: sessions/leiserchess_experiment
+
