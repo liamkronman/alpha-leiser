@@ -40,11 +40,10 @@ module Scripts
   function play(e::Experiment; args...)
     # session = Session(e; args...)
     @info "Starting interactive session"
-    gspec = deserialize(joinpath("sessions/leiserchess_experiment", "gspec.data"))
     if GI.two_players(e.gspec)
       @info "Playing against the current agent"
       # interactive!(gspec, AlphaZeroPlayer(session), Human())
-      interactive!(gspec, Human(), Human())
+      interactive!(e.gspec, Human(), Human())
     else
       interactive!(gspec, Human())
     end

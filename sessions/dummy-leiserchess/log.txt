@@ -9,7 +9,3 @@ Initializing a new AlphaZero environment
   
   Running benchmark: AlphaZero against MCTS (2 rollouts)
   
-    Average reward: +1.00 (100% won, 0% draw, 0% lost), redundancy: 0.0%
-
-Interrupted by the user
-

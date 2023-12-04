@@ -129,16 +129,22 @@ end
 function create_all_actions()
   actions = []
   push!(actions, NullMove())
-  for from in 1:64
-    new_moves = square_attacks(from)
-    for to in new_moves
-      push!(actions, TranslateMove(from, to))
+  for row in 1:NUM_ROWS
+    for col in 1:NUM_COLS
+      from_sq = idx_of_xy((col, row))
+      new_moves = square_attacks(from_sq)
+      for to_sq in new_moves
+        push!(actions, TranslateMove(from_sq, to_sq))
+      end
     end
   end
-  for sq in 1:64
-    push!(actions, RotateMove(sq, RIGHT))
-    push!(actions, RotateMove(sq, UTURN))
-    push!(actions, RotateMove(sq, LEFT))
+  for row in 1:NUM_ROWS
+    for col in 1:NUM_COLS
+      sq = idx_of_xy((col, row))
+      push!(actions, RotateMove(sq, RIGHT))
+      push!(actions, RotateMove(sq, UTURN))
+      push!(actions, RotateMove(sq, LEFT))
+    end
   end
   if size(actions)[1] != TOTAL_MOVES
     len = size(actions)[1]
@@ -181,13 +187,14 @@ function move_xy_in_dir(x, y, dir::MonarchDirection)
 end
 
 function fire_laser(board::Board, monarch_sq::SquareIdx)
-  x, y = xy_of_idx(monarch_sq)
-  dir::MonarchDirection = board[y,x].dir
-  x, y = move_xy_in_dir(x, y, dir)
+  ox, oy = xy_of_idx(monarch_sq)
+  dir::MonarchDirection = board[oy,ox].dir
+  x, y = move_xy_in_dir(ox, oy, dir)
   while valid_xy((x, y))
     piece = board[y, x]
     if piece != NA
       if piece.type == MONARCH
+        # println("monarch hit at: $x, $y, from $ox, $oy")
         return idx_of_xy((x, y))
       elseif piece.type == PAWN
         # print piece.dir and dir
@@ -212,10 +219,12 @@ function generate_action_mask(board::Board, current_player::Color)
   actions = [false]
   for row in 1:NUM_ROWS
     for col in 1:NUM_COLS
-      # if square is a Monarch
+      # Check for Monarch and laser firing possibility
       if board[row, col] != NA && board[row, col].type == MONARCH && board[row, col].color == current_player
+        # println("Checking Monarch at: ($col, $row)")
         if fire_laser(board, Int8(idx_of_xy((col, row)))) !== nothing
           actions[1] = true
+          # println("Laser can be fired from: ($col, $row)")
           break
         end
       end
@@ -232,39 +241,40 @@ function generate_action_mask(board::Board, current_player::Color)
             (to_col, to_row) = xy_of_idx(Int8(to_sq))
             target_piece = board[to_row, to_col]
 
-            # Determine if the moving piece can shove the target piece
             can_shove = target_piece == NA
             if moving_piece != NA && moving_piece.type == MONARCH
-                # Monarchs can always shove pawns, but not other monarchs
                 can_shove = can_shove || target_piece == NA || target_piece.type == PAWN
             elseif moving_piece != NA && moving_piece.type == PAWN && target_piece != NA && target_piece.type == PAWN
-                # Pawns can shove other pawns if they have equal or more qi
                 can_shove = can_shove || qi_at(Int8(from_sq)) >= qi_at(Int8(to_sq))
             end
 
             if is_our_piece && can_shove
+                # println("Valid move from: ($col, $row) to: ($to_col, $to_row)")
                 push!(actions, true)
             else
+                # println("Invalid move from: ($col, $row) to: ($to_col, $to_row)")
                 push!(actions, false)
             end
         end
     end
   end
   for row in 1:NUM_ROWS
-      for col in 1:NUM_COLS
-          if board[row, col] != NA && board[row, col].color == current_player
-              push!(actions, true)  # Rotate RIGHT
-              push!(actions, true)  # Rotate UTURN
-              push!(actions, true)  # Rotate LEFT
-          else
-              push!(actions, false)
-              push!(actions, false)
-              push!(actions, false)
-          end
-      end
+    for col in 1:NUM_COLS
+        if board[row, col] != NA && board[row, col].color == current_player
+            # println("Adding rotation moves for piece at: ($col, $row)")
+            push!(actions, true)  # Rotate RIGHT
+            push!(actions, true)  # Rotate UTURN
+            push!(actions, true)  # Rotate LEFT
+        else
+            push!(actions, false)
+            push!(actions, false)
+            push!(actions, false)
+        end
+    end
   end
   @assert length(actions) == TOTAL_MOVES
-  actions
+  # println("actions: $actions")
+  deepcopy(actions)
 end
 
 # reverse so top left is 63 and bot right is 0
@@ -308,6 +318,7 @@ GI.spec(::GameEnv) = GameSpec()
 #####
 
 GI.actions(::GameSpec) = deepcopy(ACTIONS)
+
 GI.actions_mask(g::GameEnv) = deepcopy(g.action_mask)
 GI.current_state(g::GameEnv) = (
     board = g.board, 
@@ -323,7 +334,7 @@ function GI.set_state!(g::GameEnv, state)
   g.is_finished = state.is_finished
   g.winner = state.winner
   g.moves_since_capture = state.moves_since_capture
-  g.action_mask = generate_action_mask(state.board, state.curplayer)
+  g.action_mask = generate_action_mask(g.board, g.current_player)
 end
 
 function get_push_square(from::SquareIdx, to::SquareIdx)
@@ -392,14 +403,18 @@ function GI.play!(g::GameEnv, action)
 
   # Find the index of the action in the list of all possible actions
   action_index = findfirst(==(action), ACTIONS)
+  # println("action index: $action_index")
+  # println("g.action_mask: $(g.action_mask)")
 
   # Check if the action is in the action mask
-  # if action_index === nothing || !g.action_mask[action_index]
-  #   println("Invalid action: $action is not in the action mask.")
-  #   return
-  # end
+  if action_index === nothing || !g.action_mask[action_index]
+    # println("Invalid action: $action is not in the action mask.")
+    return
+  end
 
   formatted_action = format_move(action)
+  # GI.render(g)
+  # println(formatted_action)
   push!(g.move_log, formatted_action)
 
   # stage 1: fire lasers
@@ -415,37 +430,48 @@ function GI.play!(g::GameEnv, action)
 
     # Loop through squares in the shove direction
     while true
-        next_xy = (current_xy[1] + shove_direction[1], current_xy[2] + shove_direction[2])
+      next_xy = (current_xy[1] + shove_direction[1], current_xy[2] + shove_direction[2])
 
-        if !valid_xy(next_xy)
-            mutable_board[current_xy[2], current_xy[1]] = NA
-            break
-        end
+      # Check if next square is within bounds
+      if !valid_xy(next_xy)
+          break
+      end
 
-        target_piece = mutable_board[next_xy[2], next_xy[1]]
+      target_piece = mutable_board[next_xy[2], next_xy[1]]
 
-        if target_piece == NA
-            mutable_board[next_xy[2], next_xy[1]] = mutable_board[current_xy[2], current_xy[1]]
-            mutable_board[current_xy[2], current_xy[1]] = NA
-            break
-        else
-            target_qi = qi_at(idx_of_xy((next_xy[1], next_xy[2])))
-            if moving_qi < target_qi
-                break
-            else
-                mutable_board[next_xy[2], next_xy[1]] = NA
-                current_xy = next_xy
-            end
-        end
+      # If the next square is empty, stop the shove process
+      if target_piece == NA
+          break
+      end
+
+      target_qi = qi_at(idx_of_xy((next_xy[1], next_xy[2])))
+
+      # Check for shoving logic based on piece types and qi
+      if moving_piece.type == PAWN && target_piece.type == MONARCH
+          # Pawn cannot shove a monarch
+          break
+      elseif moving_piece.type == MONARCH && target_piece.type == PAWN
+          # Monarch can shove a pawn
+          mutable_board[next_xy[2], next_xy[1]] = mutable_board[current_xy[2], current_xy[1]]
+          mutable_board[current_xy[2], current_xy[1]] = NA
+          current_xy = next_xy
+      elseif moving_qi >= target_qi
+          # General shove logic based on qi
+          mutable_board[next_xy[2], next_xy[1]] = NA
+          current_xy = next_xy
+      else
+          break
+      end
     end
 
+    # Update the board with the moving piece
     mutable_board[to_xy[2], to_xy[1]] = moving_piece
     mutable_board[from_xy[2], from_xy[1]] = NA
   elseif isa(action, RotateMove)
     # Convert the linear index to (row, col)
-    square_xy = xy_of_idx(action.square)
-    if g.board[square_xy...] != NA
-      mutable_board[square_xy...] = rotate_piece(g.board[square_xy...], action.rot)  # Rotate the piece
+    square_x, square_y = xy_of_idx(action.square)
+    if g.board[square_y, square_x] != NA
+      mutable_board[square_y, square_x] = rotate_piece(g.board[square_y, square_x], action.rot)  # Rotate the piece
     end
   else
     # null move do nothing
@@ -503,14 +529,18 @@ function GI.play!(g::GameEnv, action)
     g.is_finished = true
   end
 
-  if g.is_finished
-    GI.render(g)
-    # println("\nMove Log:")
-    for (i, move) in enumerate(g.move_log)
-      # println("Move $i: $move")
-    end
-  end
+  # if g.is_finished
+  #   println("Winner: $(g.winner)")
+  #   println("GAME OVER!!")
+  #   GI.render(g)
+  #   println("\nMove Log:")
+  #   for (i, move) in enumerate(g.move_log)
+  #     println("Move $i: $move")
+  #   end
+  # end
   
+  # println("finished move and generating action mask")
+
   g.current_player = !g.current_player
   g.action_mask = generate_action_mask(g.board, g.current_player)
 end
@@ -519,6 +549,7 @@ GI.white_playing(g::GameEnv) = g.current_player == WHITE
 GI.game_terminated(g::GameEnv) = g.is_finished
 function GI.white_reward(g::GameEnv) :: Float64
   if g.is_finished
+    # println("game finish: $(g.winner)")
     if g.moves_since_capture == 50
       return 0.0
     elseif g.winner == WHITE
@@ -651,6 +682,7 @@ player_color(p) = p == WHITE ? crayon"light_red" : crayon"light_blue"
 player_name(p)  = p == WHITE ? "Red" : "Blue"
 
 function GI.render(g::GameEnv; with_position_names=true, botmargin=true)
+    # println("ACTIONS: $(ACTIONS[297])")
     pname = player_name(g.current_player)
     pcol = player_color(g.current_player)
     print(pcol, pname, " plays:", crayon"reset", "\n\n")
